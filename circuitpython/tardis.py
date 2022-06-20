@@ -1,4 +1,6 @@
 import math
+import time
+
 import supervisor as supervisor
 from pmk.platform.keybow2040 import Keybow2040  # keypad
 from pmk import PMK

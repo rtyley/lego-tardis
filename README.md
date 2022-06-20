@@ -22,3 +22,10 @@ sudo mount -t msdos /dev/disk4s1 lego-tardis/circuitpython
 ```commandline
 diskutil unmount lego-tardis/circuitpython
 ```
+
+
+* adafruit-circuitpython-ds3231
+* adafruit-circuitpython-aw9523
+* https://github.com/pimoroni/pmk-circuitpython ??
+* [adafruit-circuitpython-is31fl3731](https://pypi.org/project/adafruit-circuitpython-is31fl3731/)
+
