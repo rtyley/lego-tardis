@@ -1,0 +1,9 @@
+.idea
+
+.Trashes
+.metadata_never_index
+.fseventsd/
+boot_out.txt
+
+*.mp3
+circuitpython/lib/
