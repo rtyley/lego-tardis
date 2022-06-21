@@ -4,9 +4,7 @@ import asyncio
 import board
 import keypad
 from adafruit_is31fl3731.keybow2040 import Keybow2040 as Pixels
-from adafruit_itertools.adafruit_itertools import count
 from adafruit_itertools.adafruit_itertools import takewhile
-from adafruit_itertools.adafruit_itertools_extras import repeatfunc
 
 KEY_PINS = (
     board.SW0, board.SW1, board.SW2, board.SW3,

@@ -23,6 +23,21 @@ sudo mount -t msdos /dev/disk4s1 lego-tardis/circuitpython
 diskutil unmount lego-tardis/circuitpython
 ```
 
+```commandline
+diskutil rename CIRCUITPY LEGO-TARDIS
+Volume on disk4s1 renamed to LEGO-TARDIS
+```
+
+```commandline
+cat /etc/fstab
+#
+# Warning - this file should only be modified with vifs(8)
+#
+# Failure to do so is unsupported and may be destructive.
+#
+
+LABEL=LEGO-TARDIS /Users/roberto/development/lego-tardis/circuitpython msdos -u=501
+```
 
 * adafruit-circuitpython-ds3231
 * adafruit-circuitpython-aw9523
