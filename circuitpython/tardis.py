@@ -1,18 +1,80 @@
 import math
 import time
-
 import supervisor as supervisor
-from pmk.platform.keybow2040 import Keybow2040  # keypad
-from pmk import PMK
 import adafruit_aw9523  # LED driver
 import adafruit_ds3231  # battery-backed RTC
 import board
 import audiobusio
 import audiomp3
 
-keybow2040 = Keybow2040()
-pmk = PMK(keybow2040)
-i2c = keybow2040.i2c()
+import asyncio
+import board
+import keypad
+from adafruit_is31fl3731.keybow2040 import Keybow2040 as KeyPadLeds
+from adafruit_itertools.adafruit_itertools import takewhile
+
+KEY_PINS = (
+    board.SW0, board.SW1, board.SW2, board.SW3,
+    board.SW4, board.SW5, board.SW6, board.SW7,
+    board.SW8, board.SW9, board.SW10, board.SW11,
+    board.SW12, board.SW13, board.SW14, board.SW15
+)
+
+i2c = board.I2C()
+pixels = KeyPadLeds(i2c)
+
+key_hist = [frozenset()]
+
+
+async def catch_pin_transitions(pin):
+    print(f"We have to try {pin}")
+    """Print a message when pin goes  low and when it goes high."""
+    with keypad.Keys(KEY_PINS, value_when_pressed=False) as keys:
+        while True:
+            event = keys.events.get()
+            if event:
+                print(event.key_number)
+                idx = event.key_number
+
+                previous_state = key_hist[-1]
+                if event.released:
+                    new_state = previous_state - frozenset([idx])
+                else:
+                    new_state = previous_state | frozenset([idx])
+                key_hist.append(new_state)
+                if len(key_hist) > 32:
+                    del key_hist[0]
+
+                print(new_state)
+                print(len(key_hist))
+                print(key_hist[-4:])
+
+                def foo(x):
+                    return len(x) <= 1
+
+                single_key_stuff = \
+                    list(reversed(list(map(lambda x: next(iter(x)), filter(lambda c: len(c) == 1, takewhile(foo, reversed(key_hist)))))))
+
+                print(single_key_stuff[-2:])
+                if single_key_stuff[-2:] == [0,1]:
+                    print("I LIKES YA")
+
+                if event.pressed:
+                    print("pin went low")
+                    pixels.pixelrgb(idx % 4, idx // 4, 255, 128, 64)
+                elif event.released:
+                    print("pin went high")
+                    pixels.pixelrgb(idx % 4, idx // 4, 4, 8, 16)
+            await asyncio.sleep(0)
+
+
+async def main():
+    interrupt_task = asyncio.create_task(catch_pin_transitions(board.SW0))
+    await asyncio.gather(interrupt_task)
+
+
+asyncio.run(main())
+
 aw = adafruit_aw9523.AW9523(i2c)
 audio = audiobusio.I2SOut(board.GP0, board.GP1, board.INT)
 
@@ -38,13 +100,11 @@ aw.directions = 0xFFFF
 
 def start():
     while True:
-        pmk.update()
         now_ticks = supervisor.ticks_ms()
         print(now_ticks, batteryRTC.datetime)
         cycle_duration = 2000
         cycle_proportion = (now_ticks % cycle_duration) / cycle_duration
-        num_keys_pressed = len(pmk.get_pressed())
-        level = int((0.5 + (0.5*(num_keys_pressed / 16))) * (128 + 127 * (math.sin(cycle_proportion * 2 * math.pi))))
+        level = int(128 + 127 * (math.sin(cycle_proportion * 2 * math.pi)))
         set_all_windows(level)
         time.sleep(0.01)
 
@@ -65,13 +125,6 @@ def set_all_windows(value):
     with aw.i2c_device as i2cDev:
         i2cDev.write(__led_buffer)
 
-
-
-# from audiocore import WaveFile
-#wave_file = open("TARDIS_Remastered_Short_01.wav", "rb")
-#wave = WaveFile(wave_file)
-#audio.play(wave)
-#print("playing", wave_file)
 
 mp3 = audiomp3.MP3Decoder(open("IAmTheDoctor.Part1.40kbps.mp3", "rb"))
 audio.play(mp3)
