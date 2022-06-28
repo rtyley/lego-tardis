@@ -1,3 +1,5 @@
+simpleio
+asyncio
 adafruit_itertools
 adafruit_ds3231
 adafruit_aw9523
