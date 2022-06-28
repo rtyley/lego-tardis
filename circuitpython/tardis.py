@@ -12,6 +12,7 @@ import board
 import keypad
 from adafruit_is31fl3731.keybow2040 import Keybow2040 as KeyPadLeds
 from adafruit_itertools.adafruit_itertools import takewhile
+from simpleio import map_range
 
 KEY_PINS = (
     board.SW0, board.SW1, board.SW2, board.SW3,
@@ -21,6 +22,10 @@ KEY_PINS = (
 )
 
 i2c = board.I2C()
+aw = adafruit_aw9523.AW9523(i2c)
+aw.constant_current_range = adafruit_aw9523.AW9523_3_4_RANGE
+
+
 pixels = KeyPadLeds(i2c)
 
 key_hist = [frozenset()]
@@ -75,7 +80,7 @@ async def main():
 
 asyncio.run(main())
 
-aw = adafruit_aw9523.AW9523(i2c)
+
 audio = audiobusio.I2SOut(board.GP0, board.GP1, board.INT)
 
 batteryRTC = adafruit_ds3231.DS3231(i2c)
@@ -104,7 +109,7 @@ def start():
         print(now_ticks, batteryRTC.datetime)
         cycle_duration = 2000
         cycle_proportion = (now_ticks % cycle_duration) / cycle_duration
-        level = int(128 + 127 * (math.sin(cycle_proportion * 2 * math.pi)))
+        level = map_range(math.sin(cycle_proportion * 2 * math.pi), -1 , 1, 0, 224)
         set_all_windows(level)
         time.sleep(0.01)
 

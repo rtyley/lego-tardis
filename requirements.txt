@@ -1,0 +1,4 @@
+adafruit_itertools
+adafruit_ds3231
+adafruit_aw9523
+adafruit_is31fl3731
