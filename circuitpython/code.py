@@ -1,5 +1,6 @@
 import math
 import time
+import asyncio
 
 from tardis import windows
 
@@ -7,10 +8,17 @@ print("HIHI")
 windows.sweep()
 
 
-windows.aw.set_constant_current(1, 255)
-for lamp_angle in range(10000):
-    windows.set_windows([int(255 * math.pow((1 + math.cos(1 * ((2 * math.pi * x/8) - (lamp_angle / 10))))/2, 3)) for x in range(8)])
-    time.sleep(0.01)
+async def main():
+    led1_task = asyncio.create_task(windows.whoosh())
+    # led2_task = asyncio.create_task(blink(board.D2, 0.1, 20))
+
+    await asyncio.gather(led1_task)  # Don't forget "await"!
+    print("done")
+
+
+asyncio.run(main())
+
+
 
 from tardis import tardis_keypad
 
