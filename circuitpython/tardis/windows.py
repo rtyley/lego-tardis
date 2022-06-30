@@ -4,6 +4,7 @@ import adafruit_aw9523  # LED driver
 import board
 import math
 import asyncio
+import supervisor
 
 i2c = board.I2C()
 aw = adafruit_aw9523.AW9523(i2c)
@@ -25,7 +26,7 @@ windowPinNumbers = [1, 4, 2, 5, 3, 6, 7, 12]
 # 7: 4_Black
 # 12: 4_White
 
-NUM_WINDOWS = 8
+NUM_WINDOWS = const(8)
 
 
 def sweep():
@@ -40,9 +41,10 @@ def sweep():
 
 
 async def whoosh():
-    for lamp_angle in range(10000):
+    while True:
+        lamp_angle = supervisor.ticks_ms() / 500
         set_windows(
-            [int(255 * math.pow((1 + math.cos(1 * ((2 * math.pi * x / 8) - (lamp_angle / 50)))) / 2, 8)) for x in
+            [int(255 * math.pow((1 + math.cos(1 * ((2 * math.pi * x / 8) - lamp_angle))) / 2, 8)) for x in
              range(8)]
         )
         await asyncio.sleep(0.01)
