@@ -57,9 +57,3 @@ async def catch_pin_transitions():
                     pixels.pixelrgb(idx % 4, idx // 4, 4, 8, 16)
             await asyncio.sleep(0)
 
-async def main():
-    interrupt_task = asyncio.create_task(catch_pin_transitions())
-    await asyncio.gather(interrupt_task)
-
-
-asyncio.run(main())

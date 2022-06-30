@@ -2,17 +2,19 @@ import math
 import time
 import asyncio
 
-from tardis import windows
+from tardis import windows, tardis_keypad
 
 print("HIHI")
 windows.sweep()
 
 
 async def main():
-    led1_task = asyncio.create_task(windows.whoosh())
     # led2_task = asyncio.create_task(blink(board.D2, 0.1, 20))
 
-    await asyncio.gather(led1_task)  # Don't forget "await"!
+    await asyncio.gather(
+        asyncio.create_task(windows.whoosh()),
+        asyncio.create_task(tardis_keypad.catch_pin_transitions())
+    )  # Don't forget "await"!
     print("done")
 
 
