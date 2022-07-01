@@ -1,8 +1,17 @@
 import asyncio
-from tardis import windows, tardis_keypad
+
+from tardis import tardis_keypad, windows
+
+# from tardis import sound
+import board
+from tardis.hardware.keybow2040 import KeyBow2040I2SPins as I2SPins
 
 print("HIHI")
-windows.sweep()
+
+# I2SPins().diagnostic_check()
+
+
+# windows.sweep()
 
 
 async def main():

@@ -42,7 +42,9 @@ def sweep():
 
 async def whoosh():
     while True:
-        lamp_angle = supervisor.ticks_ms() / 500
+        myTime = supervisor.ticks_ms()
+        # print(f"myTime= {myTime}")
+        lamp_angle = myTime / 500
         set_windows(
             [int(255 * math.pow((1 + math.cos(1 * ((2 * math.pi * x / 8) - lamp_angle))) / 2, 8)) for x in
              range(8)]
