@@ -52,7 +52,12 @@ async def catch_pin_transitions(ghetto_blaster_controls):
                 print(single_key_stuff[-2:])
                 if single_key_stuff[-2:] == [0, 1]:
                     print("I LIKES YA")
-                    ghetto_blaster_controls.make_request_for("tardis/IAmTheDoctor.Part1.40kbps.mp3")
+                    ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayIAmTheDoctor)
+
+                if single_key_stuff[-2:] == [2, 3]:
+                    ghetto_blaster_controls.make_request_for(ghetto_blaster.Pause())
+                if single_key_stuff[-2:] == [4, 5]:
+                    ghetto_blaster_controls.make_request_for(ghetto_blaster.Resume())
 
                 if event.pressed:
                     print("pin went low")
