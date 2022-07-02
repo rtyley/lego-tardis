@@ -51,7 +51,7 @@ class Controls:
 
 
 PlayIAmTheDoctor = Play("tardis/IAmTheDoctor.Part1.40kbps.mp3")
-
+PlayTardisLanding = Play("tardis/TardisLands.TheChase.40kbps.mp3")
 
 async def poll_for_music_requests(controls):
     with audiobusio.I2SOut(board.GP0, board.GP1, board.INT) as audio:

@@ -29,6 +29,6 @@ asyncio.run(main())
 
 # tardis.onKeys(Pressed(All), setMode(TakeOffAndSleep))
 # tardis.onKeys(Released(All), setMode(Scrabble))
-# tardis.onKeys(KeySequence(1,4,12), setMode(SetTime))
+# tardis.onKeys(KeySequence(KEY[0][0],KEY[1][0],KEY[0][-1]), setMode(SetTime))
 
 # tardis.start()

@@ -6,6 +6,13 @@ from adafruit_itertools.adafruit_itertools import takewhile
 
 from tardis import ghetto_blaster
 
+# KEY_PIN_ARRAY = [
+#     [board.SW0, board.SW1, board.SW2, board.SW3],
+#     [board.SW4, board.SW5, board.SW6, board.SW7],
+#     [board.SW8, board.SW9, board.SW10, board.SW11],
+#     [board.SW12, board.SW13, board.SW14, board.SW15]
+# ]
+
 KEY_PINS = (
     board.SW0, board.SW1, board.SW2, board.SW3,
     board.SW4, board.SW5, board.SW6, board.SW7,
@@ -35,8 +42,6 @@ async def catch_pin_transitions(ghetto_blaster_controls):
                 if len(key_hist) > 32:
                     del key_hist[0]
 
-                print(new_state)
-                print(len(key_hist))
                 print([set(x) for x in key_hist[-5:]])
 
                 def foo(x):
@@ -47,20 +52,23 @@ async def catch_pin_transitions(ghetto_blaster_controls):
 
                 print(single_key_stuff[-2:])
 
-                pixel_x = idx % 4
-                pixel_y = idx // 4
                 if event.pressed:
                     if single_key_stuff[-2:] == [0, 1]:
-                        print("I LIKES YA")
                         ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayIAmTheDoctor)
+                    if single_key_stuff[-2:] == [1, 0]:
+                        ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayTardisLanding)
 
                     if single_key_stuff[-2:] == [2, 3]:
                         ghetto_blaster_controls.make_request_for(ghetto_blaster.PauseOrResume())
 
                     print("pin went low")
-                    pixels.pixelrgb(pixel_x, pixel_y, 255, 128, 64)
+                    colour = (255, 128, 64)
                 elif event.released:
                     print("pin went high")
-                    pixels.pixelrgb(pixel_x, pixel_y, 4, 8, 16)
+                    colour = (4, 8, 16)
+
+                pixel_x = idx % 4
+                pixel_y = idx // 4
+                pixels.pixelrgb(pixel_x, pixel_y, colour[0], colour[1], colour[2])
             await asyncio.sleep(0)
 
