@@ -4,7 +4,7 @@ import keypad
 from adafruit_is31fl3731.keybow2040 import Keybow2040 as KeyPadLeds
 from adafruit_itertools.adafruit_itertools import takewhile
 
-from tardis import sound
+from tardis import ghetto_blaster
 
 KEY_PINS = (
     board.SW0, board.SW1, board.SW2, board.SW3,
@@ -19,7 +19,7 @@ pixels = KeyPadLeds(i2c)
 key_hist = [frozenset()]
 
 
-async def catch_pin_transitions():
+async def catch_pin_transitions(ghetto_blaster_controls):
     """Print a message when pin goes  low and when it goes high."""
     with keypad.Keys(KEY_PINS, value_when_pressed=False) as keys:
         while True:
@@ -41,7 +41,7 @@ async def catch_pin_transitions():
 
                 print(new_state)
                 print(len(key_hist))
-                print(key_hist[-4:])
+                print([set(x) for x in key_hist[-4:]])
 
                 def foo(x):
                     return len(x) <= 1
@@ -52,7 +52,7 @@ async def catch_pin_transitions():
                 print(single_key_stuff[-2:])
                 if single_key_stuff[-2:] == [0, 1]:
                     print("I LIKES YA")
-                    sound.play_music()
+                    ghetto_blaster_controls.make_request_for("tardis/IAmTheDoctor.Part1.40kbps.mp3")
 
                 if event.pressed:
                     print("pin went low")

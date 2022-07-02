@@ -1,6 +1,6 @@
 import asyncio
 
-from tardis import tardis_keypad, windows
+from tardis import tardis_keypad, windows, ghetto_blaster
 
 # from tardis import sound
 import board
@@ -15,9 +15,12 @@ print("HIHI")
 
 
 async def main():
+    ghetto_blaster_controls = ghetto_blaster.Controls()
+
     await asyncio.gather(
         asyncio.create_task(windows.whoosh()),
-        asyncio.create_task(tardis_keypad.catch_pin_transitions())
+        asyncio.create_task(tardis_keypad.catch_pin_transitions(ghetto_blaster_controls)),
+        asyncio.create_task(ghetto_blaster.poll_for_music_requests(ghetto_blaster_controls))
     )
     print("done")
 
