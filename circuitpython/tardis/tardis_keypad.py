@@ -20,28 +20,24 @@ key_hist = [frozenset()]
 
 
 async def catch_pin_transitions(ghetto_blaster_controls):
-    """Print a message when pin goes  low and when it goes high."""
     with keypad.Keys(KEY_PINS, value_when_pressed=False) as keys:
         while True:
             event = keys.events.get()
             if event:
-                print(event.key_number)
                 idx = event.key_number
 
                 previous_state = key_hist[-1]
-                if event.released:
-                    print("REMOVING")
-                    new_state = previous_state - frozenset([idx])
-                else:
-                    print("ADDING")
-                    new_state = previous_state | frozenset([idx])
+
+                event_key = frozenset([idx])
+                new_state = previous_state - event_key if event.released else previous_state | event_key
+
                 key_hist.append(new_state)
                 if len(key_hist) > 32:
                     del key_hist[0]
 
                 print(new_state)
                 print(len(key_hist))
-                print([set(x) for x in key_hist[-4:]])
+                print([set(x) for x in key_hist[-5:]])
 
                 def foo(x):
                     return len(x) <= 1
@@ -50,20 +46,21 @@ async def catch_pin_transitions(ghetto_blaster_controls):
                     list(reversed(list(map(lambda x: next(iter(x)), filter(lambda c: len(c) == 1, takewhile(foo, reversed(key_hist)))))))
 
                 print(single_key_stuff[-2:])
-                if single_key_stuff[-2:] == [0, 1]:
-                    print("I LIKES YA")
-                    ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayIAmTheDoctor)
 
-                if single_key_stuff[-2:] == [2, 3]:
-                    ghetto_blaster_controls.make_request_for(ghetto_blaster.Pause())
-                if single_key_stuff[-2:] == [4, 5]:
-                    ghetto_blaster_controls.make_request_for(ghetto_blaster.Resume())
-
+                pixel_x = idx % 4
+                pixel_y = idx // 4
                 if event.pressed:
+                    if single_key_stuff[-2:] == [0, 1]:
+                        print("I LIKES YA")
+                        ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayIAmTheDoctor)
+
+                    if single_key_stuff[-2:] == [2, 3]:
+                        ghetto_blaster_controls.make_request_for(ghetto_blaster.PauseOrResume())
+
                     print("pin went low")
-                    pixels.pixelrgb(idx % 4, idx // 4, 255, 128, 64)
+                    pixels.pixelrgb(pixel_x, pixel_y, 255, 128, 64)
                 elif event.released:
                     print("pin went high")
-                    pixels.pixelrgb(idx % 4, idx // 4, 4, 8, 16)
+                    pixels.pixelrgb(pixel_x, pixel_y, 4, 8, 16)
             await asyncio.sleep(0)
 

@@ -29,14 +29,12 @@ class Play(Command):
         audio.play(self.mp3)
 
 
-class Pause(Command):
+class PauseOrResume(Command):
     def execute(self, audio):
-        audio.pause()
-
-
-class Resume(Command):
-    def execute(self, audio):
-        audio.resume()
+        if audio.paused:
+            audio.resume()
+        else:
+            audio.pause()
 
 
 class Controls:
@@ -62,15 +60,3 @@ async def poll_for_music_requests(controls):
             if command is not None:
                 command.execute(audio)
             await asyncio.sleep(0.05)
-
-# def play_music():
-#
-#     mp3 = audiomp3.MP3Decoder(open("tardis/IAmTheDoctor.Part1.40kbps.mp3", "rb"))
-#     print(f"mp3= {mp3}")
-#     # audio.play(mp3)
-#     with audiobusio.I2SOut(board.GP0, board.GP1, board.INT) as a:
-#         a.play(mp3)
-#     print(f"Playing should have started, right?")
-#     # while audio.playing:
-#     #     print(f"samples_decoded = {mp3.samples_decoded}")
-#     #     pass
