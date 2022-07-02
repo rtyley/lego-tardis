@@ -28,6 +28,17 @@ windowPinNumbers = [1, 4, 2, 5, 3, 6, 7, 12]
 
 NUM_WINDOWS = const(8)
 
+_TICKS_PERIOD = const(1<<29)
+_TICKS_MAX = const(_TICKS_PERIOD-1)
+_TICKS_HALFPERIOD = const(_TICKS_PERIOD//2)
+
+
+def ticks_diff(ticks1, ticks2):
+    # "Compute the signed difference between two ticks values, assuming that they are within 2**28 ticks"
+    diff = (ticks1 - ticks2) & _TICKS_MAX
+    diff = ((diff + _TICKS_HALFPERIOD) & _TICKS_MAX) - _TICKS_HALFPERIOD
+    return diff
+
 
 def sweep():
     half_num_windows = int(NUM_WINDOWS / 2)
@@ -41,15 +52,17 @@ def sweep():
 
 
 async def whoosh():
+    start_time = supervisor.ticks_ms()
     while True:
-        myTime = supervisor.ticks_ms()
-        # print(f"myTime= {myTime}")
-        lamp_angle = myTime / 500
+        now = supervisor.ticks_ms()
+        time_since_start = ticks_diff(now, start_time)
+        # print(f"time_since_start= {time_since_start}")
+        lamp_angle = time_since_start / 500
         set_windows(
             [int(255 * math.pow((1 + math.cos(1 * ((2 * math.pi * x / 8) - lamp_angle))) / 2, 8)) for x in
              range(8)]
         )
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.02)
 
 
 def set_all_windows(value):
