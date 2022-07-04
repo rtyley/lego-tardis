@@ -65,6 +65,21 @@ async def whoosh():
         await asyncio.sleep(0.02)
 
 
+async def whooshy_cycle():
+    start_time = supervisor.ticks_ms()
+    time_since_start = 0
+    while time_since_start < 1000:
+        now = supervisor.ticks_ms()
+        time_since_start = ticks_diff(now, start_time)
+        # print(f"time_since_start= {time_since_start}")
+        lamp_angle = time_since_start / 50
+        set_windows(
+            [int(255 * math.pow((1 + math.cos(1 * ((2 * math.pi * x / 8) - lamp_angle))) / 2, 8)) for x in
+             range(8)]
+        )
+        await asyncio.sleep(0.02)
+
+
 def set_all_windows(value):
     __led_buffer[0] = 0x25  # Address of the register for the 1st pin (P0_1 LED current control)
     __led_buffer[1] = value  # int(value/1)
