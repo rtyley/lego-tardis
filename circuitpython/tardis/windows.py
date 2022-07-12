@@ -6,6 +6,15 @@ import math
 import asyncio
 import supervisor
 
+from tardis.tardis_keypad import KeyHistory
+
+NUM_WINDOWS = const(8)
+
+
+global __window_state
+
+__window_state = [0] * NUM_WINDOWS
+
 i2c = board.I2C()
 aw = adafruit_aw9523.AW9523(i2c)
 
@@ -26,11 +35,9 @@ windowPinNumbers = [1, 4, 2, 5, 3, 6, 7, 12]
 # 7: 4_Black
 # 12: 4_White
 
-NUM_WINDOWS = const(8)
-
-_TICKS_PERIOD = const(1<<29)
-_TICKS_MAX = const(_TICKS_PERIOD-1)
-_TICKS_HALFPERIOD = const(_TICKS_PERIOD//2)
+_TICKS_PERIOD = const(1 << 29)
+_TICKS_MAX = const(_TICKS_PERIOD - 1)
+_TICKS_HALFPERIOD = const(_TICKS_PERIOD // 2)
 
 
 def ticks_diff(ticks1, ticks2):
@@ -45,23 +52,25 @@ def sweep():
     for n in range(3):
         for windowIndex in range(half_num_windows):
             aw.set_constant_current(windowPinNumbers[windowIndex], 224)
-            aw.set_constant_current(windowPinNumbers[windowIndex+half_num_windows], 224)
+            aw.set_constant_current(windowPinNumbers[windowIndex + half_num_windows], 224)
             time.sleep(0.1)
             aw.set_constant_current(windowPinNumbers[windowIndex], 0)
             aw.set_constant_current(windowPinNumbers[windowIndex + half_num_windows], 0)
 
 
-async def whoosh():
+async def whoosh(key_history: KeyHistory):
     start_time = supervisor.ticks_ms()
     while True:
         now = supervisor.ticks_ms()
-        time_since_start = ticks_diff(now, start_time)
-        # print(f"time_since_start= {time_since_start}")
-        lamp_angle = time_since_start / 500
-        set_windows(
-            [int(255 * math.pow((1 + math.cos(1 * ((2 * math.pi * x / 8) - lamp_angle))) / 2, 8)) for x in
-             range(8)]
-        )
+
+        if key_history.time_since_last_key_press() > 1000:
+            time_since_start = ticks_diff(now, start_time)
+            # print(f"time_since_start= {time_since_start}")
+            lamp_angle = time_since_start / 500
+            set_windows(
+                [int(255 * math.pow((1 + math.cos(1 * ((2 * math.pi * x / 8) - lamp_angle))) / 2, 8)) for x in
+                 range(8)]
+            )
         await asyncio.sleep(0.02)
 
 
@@ -81,21 +90,17 @@ async def whooshy_cycle():
 
 
 def set_all_windows(value):
-    __led_buffer[0] = 0x25  # Address of the register for the 1st pin (P0_1 LED current control)
-    __led_buffer[1] = value  # int(value/1)
-    __led_buffer[2] = value  # int(value/3)
-    __led_buffer[3] = value  # int(value/5)
-    __led_buffer[4] = value  # int(value/2)
-    __led_buffer[5] = value  # int(value/4)
-    __led_buffer[6] = value  # int(value/6)
-    __led_buffer[7] = value  # int(value/7)
-    __led_buffer[8] = value  # int(value/8)
-    with aw.i2c_device as i2cDev:
-        i2cDev.write(__led_buffer)
+    set_windows([value] * NUM_WINDOWS)
+
+
+def toggle_window(windowIndex):
+    __window_state[windowIndex] = 255 - __window_state[windowIndex]
 
 
 def set_windows(values):
     __led_buffer[0] = 0x25  # Address of the register for the 1st pin (P0_1 LED current control)
+
+    __window_state = values.copy()
 
     __led_buffer[1] = values[0]
     __led_buffer[2] = values[2]  # int(value/3)

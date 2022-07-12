@@ -1,6 +1,9 @@
 import asyncio
+import random
+
 import board
 import keypad
+import supervisor
 from adafruit_is31fl3731.keybow2040 import Keybow2040 as KeyPadLeds
 from adafruit_itertools.adafruit_itertools import takewhile
 
@@ -27,6 +30,11 @@ pixels = KeyPadLeds(i2c)
 class KeyHistory:
     def __init__(self):
         self.key_hist = [frozenset()]
+        self.latest_change = supervisor.ticks_ms()
+
+    def time_since_last_key_press(self):
+        latestState = self.key_hist[-1]
+        (supervisor.ticks_ms() - self.latest_change) if len(latestState) == 0 else 0
 
     def add_event(self, event: keypad.Event):
         previous_state = self.key_hist[-1]
@@ -57,24 +65,27 @@ async def catch_pin_transitions(key_history: KeyHistory, ghetto_blaster_controls
         while True:
             event = keys.events.get()
             if event:
+                self.latest_change = supervisor.ticks_ms()
                 idx = event.key_number
                 key_history.add_event(event)
 
                 single_key_stuff = key_history.single_key_hist()
 
                 if event.pressed:
+                    windows.toggle_window(random.randint(0, windows.NUM_WINDOWS))
+
                     if single_key_stuff[-2:] == [0, 1]:
                         ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayIAmTheDoctor)
                     if single_key_stuff[-2:] == [1, 0]:
                         ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayTardisLanding)
-                    if single_key_stuff[-2:] == [14, 15]:
-                        anim = asyncio.create_task(windows.whooshy_cycle())
+                    # if single_key_stuff[-2:] == [14, 15]:
+                    #     anim = asyncio.create_task(windows.whooshy_cycle())
 
                     if single_key_stuff[-2:] == [2, 3]:
                         ghetto_blaster_controls.make_request_for(ghetto_blaster.PauseOrResume())
 
                     print("pin went low")
-                    colour = (255, 128, 64)
+                    colour = (255, 255, 64)
                 elif event.released:
                     print("pin went high")
                     colour = (4, 8, 16)
