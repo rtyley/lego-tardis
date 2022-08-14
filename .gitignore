@@ -1,5 +1,6 @@
 .idea
 
+.DS_Store
 .Trashes
 .metadata_never_index
 .fseventsd/
