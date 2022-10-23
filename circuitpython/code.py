@@ -19,7 +19,7 @@ async def main():
     key_history = tardis_keypad.KeyHistory()
 
     await asyncio.gather(
-        asyncio.create_task(windows.whoosh(key_history)),
+        asyncio.create_task(windows.whoosh()),
         asyncio.create_task(tardis_keypad.catch_pin_transitions(key_history, ghetto_blaster_controls)),
         asyncio.create_task(ghetto_blaster.poll_for_music_requests(ghetto_blaster_controls))
     )
