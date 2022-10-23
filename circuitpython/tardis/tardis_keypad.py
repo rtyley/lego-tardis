@@ -5,7 +5,7 @@ import board
 import keypad
 import supervisor
 from adafruit_is31fl3731.keybow2040 import Keybow2040 as KeyPadLeds
-from adafruit_itertools.adafruit_itertools import takewhile
+from adafruit_itertools import takewhile
 
 from tardis import ghetto_blaster, windows
 
