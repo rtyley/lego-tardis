@@ -5,6 +5,7 @@ import board
 import math
 import asyncio
 import supervisor
+from adafruit_ticks import ticks_diff
 
 i2c = board.I2C()
 aw = adafruit_aw9523.AW9523(i2c)
@@ -27,18 +28,6 @@ windowPinNumbers = [1, 4, 2, 5, 3, 6, 7, 12]
 # 12: 4_White
 
 NUM_WINDOWS = const(8)
-
-_TICKS_PERIOD = const(1<<29)
-_TICKS_MAX = const(_TICKS_PERIOD-1)
-_TICKS_HALFPERIOD = const(_TICKS_PERIOD//2)
-
-
-def ticks_diff(ticks1, ticks2):
-    # "Compute the signed difference between two ticks values, assuming that they are within 2**28 ticks"
-    diff = (ticks1 - ticks2) & _TICKS_MAX
-    diff = ((diff + _TICKS_HALFPERIOD) & _TICKS_MAX) - _TICKS_HALFPERIOD
-    return diff
-
 
 def sweep():
     half_num_windows = int(NUM_WINDOWS / 2)

@@ -5,6 +5,7 @@ from tardis import tardis_keypad, windows, ghetto_blaster
 # from tardis import sound
 import board
 from tardis.hardware.keybow2040 import KeyBow2040I2SPins as I2SPins
+import tardis.clock
 
 print("HIHI")
 
