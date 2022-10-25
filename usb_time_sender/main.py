@@ -2,15 +2,34 @@
 #
 # Vendor:Product ID for Raspberry Pi Pico is 2E8A:0005
 #
-from serial.tools import list_ports
-import serial, time
-from datetime import timezone, timedelta
 import datetime
-from time import gmtime
 import textwrap
+from datetime import timezone, timedelta
+from time import gmtime
+
+import serial
+import time
+from serial.tools import list_ports
 
 print("Hi there")
 print(list_ports.comports())
+
+# The aim is to get the client RTC clock ticking over its second field at exactly the right moment.
+# Task 1: We want to see if we literally can change the second-tick-over to occur at different millisecond offsets
+# within the second. Take multiple samples of supervisor ticks_ms % 1000 at RTC tick-over, before and after
+# setting the clock - we should see a difference. We should be able to *set* the difference! If we can't, we can't
+# achieve our aim. Assuming we can set the diff, maybe calibrate if we need an offset to get desired tick-over time.
+
+# Function to get supervisor tick-over time? Call, blocks for up to 1 second, returns an 0-999 integer=ticks at rollover
+
+
+# 1 cycle:
+#   Server Send time, with deadline ms offset
+#   client waits to deadline supervisor
+#   get time back (when client-clock ticks over second)
+#   this will yield a diff
+#
+# Perform
 
 # VID:PID for different devices:
 # RPi Pico                  : 2E8A:0005
@@ -33,7 +52,6 @@ else:
         [str(x) for x in [t.year, t.month, t.day, t.hour, t.minute, t.second, t.weekday(), millisToWaitForDeadline]])
 
     with serial.Serial(picoSerialPort) as console:
-        # syncMSG = 'T'+str(int(1000*t.timestamp()))
         syncMSG = 'T'+timeCube+'_'
         console.write(bytes(syncMSG, "ascii"))
 

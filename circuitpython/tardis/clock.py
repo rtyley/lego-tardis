@@ -1,7 +1,15 @@
+import asyncio
+
+import adafruit_ticks
 import board
 import adafruit_ds3231  # battery-backed RTC
 import supervisor
+import countio
 import time
+from sys import stdin
+from select import select
+from tardis.windows import set_all_windows
+from adafruit_ticks import ticks_diff
 
 i2c = board.I2C()
 batteryRTC = adafruit_ds3231.DS3231(i2c)
@@ -9,15 +17,54 @@ batteryRTC = adafruit_ds3231.DS3231(i2c)
 t = batteryRTC.datetime
 print(t)  # uncomment for debugging
 
-async def whoosh():
-    start_time = supervisor.ticks_ms()
+
+async def watch_clock():
+    start_ticks = supervisor.ticks_ms()
+    last_rtc = batteryRTC.datetime
     while True:
-        now = supervisor.ticks_ms()
-        time_since_start = ticks_diff(now, start_time)
-        # print(f"time_since_start= {time_since_start}")
-        lamp_angle = time_since_start / 500
-        set_windows(
-            [int(255 * math.pow((1 + math.cos(1 * ((2 * math.pi * x / 8) - lamp_angle))) / 2, 8)) for x in
-             range(8)]
-        )
-        await asyncio.sleep(0.02)
+        now_rtc = batteryRTC.datetime
+        now_ticks = supervisor.ticks_ms()
+        if now_rtc.tm_sec != last_rtc.tm_sec:
+            last_rtc = now_rtc
+            ticks_offset = now_ticks % 1000
+            print(ticks_offset)
+            if now_rtc.tm_sec % 10 == 0:
+                print('RTC :', end='');print(now_rtc)
+                if ticks_offset > 0:
+                    while (supervisor.ticks_ms()+4) % 1000 >= ticks_offset:
+                        await asyncio.sleep(0.0001)
+                    batteryRTC.datetime = now_rtc
+
+
+        receivedTimeDataFromUsb = readDeadlineAndTimeToDeadlineFromUSB()
+        if receivedTimeDataFromUsb:
+            deadline_fields, deadline_ticks = receivedTimeDataFromUsb
+            (year, month, day, hour, minute, second, wday, yday) = deadline_fields
+            while ticks_diff(deadline_ticks, supervisor.ticks_ms()) > 0:
+                await asyncio.sleep(0.001/2)  # *ticks_diff(deadline, time.ticks_ms())
+            batteryRTC.datetime = time.struct_time((year, month, day, hour, minute, second, wday, yday, -1))
+
+        await asyncio.sleep(0.001/2)
+
+
+def readDeadlineAndTimeToDeadlineFromUSB():
+    ch, buffer = '',''
+    ticks_ms_for_read_instant = supervisor.ticks_ms()
+    while stdin in select([stdin], [], [], 0)[0]:
+        ch = stdin.read(1)
+        buffer = buffer+ch
+    if buffer:
+        print("Received USB data!")
+        for i in range(len(buffer)):
+            if buffer[i] == 'T':
+                break
+        buffer = buffer[i:]
+        if buffer[:1] == 'T' and buffer[-1] == '_':
+            buffData = buffer[1:-1]
+            buffFields = [int(x) for x in buffData.split(',')]
+            deadLineFields = buffFields[:-1]
+            deadLineFields.append(0)
+            timeToDeadLine = buffFields[-1]
+            print("timeToDeadLine:",end='');print(timeToDeadLine)
+            set_all_windows(timeToDeadLine // 4)
+            return deadLineFields, adafruit_ticks.ticks_add(ticks_ms_for_read_instant, timeToDeadLine)
