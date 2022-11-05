@@ -25,7 +25,7 @@ print(list_ports.comports())
 
 # 1 cycle:
 #   Server Send time, with deadline ms offset
-#   client waits to deadline supervisor
+#   client waits to deadline supervisorsefsdf
 #   get time back (when client-clock ticks over second)
 #   this will yield a diff
 #
