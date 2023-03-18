@@ -1,4 +1,4 @@
-import random
+circuitpython/tardis/memory_game.pyimport random
 
 import board
 import audiobusio
@@ -42,6 +42,41 @@ class Element:
 
         self.resting_key = keyFor(0,0)
         self.other_keys = [keyFor(0,1), keyFor(1,1), keyFor(1,0)]
+        self.all_keys = [self.resting_key] + self.other_keys
+
+    def set_button(self, activate):
+        def set_key(key, mult):
+            c = self.colour
+            pixels.pixelrgb(key[0], key[1], int(c[0] * mult), int(c[1] * mult), int(c[2] * mult))
+
+        set_key(self.resting_key, 1 if activate else 0.2)
+        for k in self.other_keys:
+            set_key(k, 1 if activate else 0)
+
+    def start_element(self):
+        self.set_button(True)
+        tone_volume = 0.01  # Increase this to increase the volume of the tone.
+        frequency = self.note_f  # Set this to the Hz of the tone you want to generate.
+        length = math.floor(8000 / frequency)
+        print(length)
+        sine_wave = array.array("H", [0] * length)
+        for i in range(length):
+            sine_wave[i] = int((1 + math.sin(math.pi * 2 * i / length)) * tone_volume * (2 ** 15 - 1))
+        sine_wave_sample = RawSample(sine_wave)
+        print("sine_wave_sample.sample_rate")
+        print(sine_wave_sample.sample_rate)
+        mixer.voice[0].play(sine_wave_sample, loop=True)
+        return length, tone_volume
+
+    def stop_element(self):
+        tone_volume = 0.01
+        length = 8
+        silence_wave = array.array("H", [0] * length)
+        for i in range(length):
+            silence_wave[i] = int(tone_volume * (2 ** 15 - 1))
+        silence_wave_sample = RawSample(silence_wave)
+        mixer.voice[0].play(silence_wave_sample, loop=True)
+        self.set_button(False)
 
 
 # https://en.wikipedia.org/wiki/Simon_(game)#Gameplay
@@ -52,60 +87,41 @@ GREEN  = Element("g5", (0, 255, 0), (-1, 1))
 
 ALL_ELEMENTS = [BLUE, YELLOW, RED, GREEN]
 
-def set_button(element, activate):
-    def set_key(key, mult):
-        c = element.colour
-        pixels.pixelrgb(key[0], key[1], int(c[0] * mult), int(c[1] * mult), int(c[2] * mult))
+def element_for_key(key):
+    for e in ALL_ELEMENTS:
+        print(e.all_keys)
 
-    set_key(element.resting_key, 1 if activate else 0.2)
-    for k in element.other_keys:
-        set_key(k, 1 if activate else 0)
+    next((e for e in ALL_ELEMENTS if key in e.all_keys))
 
 import audiomixer
 mixer = audiomixer.Mixer(voice_count=2, sample_rate=8000, channel_count=1,
                                  bits_per_sample=16, samples_signed=False)
 
-async def start_element(element):
-    set_button(element, True)
-    tone_volume = 0.01  # Increase this to increase the volume of the tone.
-    frequency = element.note_f  # Set this to the Hz of the tone you want to generate.
-    length = math.floor(8000 / frequency)
-    print(length)
-    sine_wave = array.array("H", [0] * length)
-    for i in range(length):
-        sine_wave[i] = int((1 + math.sin(math.pi * 2 * i / length)) * tone_volume * (2 ** 15 - 1))
-    sine_wave_sample = RawSample(sine_wave)
-    print("sine_wave_sample.sample_rate")
-    print(sine_wave_sample.sample_rate)
-    mixer.voice[0].play(sine_wave_sample, loop=True)
-    return length, tone_volume
 
-async def stop_element(element):
-    tone_volume = 0.01
-    length = 8
-    silence_wave = array.array("H", [0] * length)
-    for i in range(length):
-        silence_wave[i] = int(tone_volume * (2 ** 15 - 1))
-    silence_wave_sample = RawSample(silence_wave)
-    mixer.voice[0].play(silence_wave_sample, loop=True)
-    set_button(element, False)
 
-async def play_element(element, audio):
-    await start_element(element)
-    await asyncio.sleep(0.5)
-    await stop_element(element)
 
 async def poll():
     with audiobusio.I2SOut(board.GP0, board.GP1, board.INT) as audio:
         audio.play(mixer)
 
         for element in ALL_ELEMENTS:
-            set_button(element, False)
+            element.set_button(False)
         seq = []
         while True:
             seq.append(random.choice(ALL_ELEMENTS))
-            for element in seq:
-                await play_element(element, audio)
-                await asyncio.sleep(0.1)
+            speed_mult = 0.2 + math.pow(1.05,-len(seq))
+            await play_sequence(seq, speed_mult)
 
-            await asyncio.sleep(2)
+            player_pos_in_seq = 0
+
+
+
+            await asyncio.sleep(2 * speed_mult)
+
+
+async def play_sequence(seq, speed_mult):
+    for element in seq:
+        element.start_element()
+        await asyncio.sleep(0.5 * speed_mult)
+        element.stop_element()
+        await asyncio.sleep(0.1 * speed_mult)

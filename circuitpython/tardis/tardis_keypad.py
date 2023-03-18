@@ -7,7 +7,7 @@ import supervisor
 from adafruit_ticks import ticks_diff
 import math
 
-from tardis import ghetto_blaster, windows
+from tardis import ghetto_blaster, windows, memory_game
 
 # KEY_PIN_ARRAY = [
 #     [board.SW0, board.SW1, board.SW2, board.SW3],
@@ -102,7 +102,20 @@ async def catch_pin_transitions(key_history: KeyHistory, ghetto_blaster_controls
 
                 single_key_stuff = key_history.single_key_hist()
 
+                pixel_x = idx % 4
+                pixel_y = idx // 4
+                k = (pixel_x, pixel_y)
+
+                print("k")
+                print(k)
+                element = memory_game.element_for_key(k)
+                print("element")
+                print(element)
+
                 if event.pressed:
+                    print("pin went low")
+                    element.start_element()
+
                     if single_key_stuff[-2:] == [0, 1]:
                         ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayIAmTheDoctor)
                     if single_key_stuff[-2:] == [1, 0]:
@@ -117,14 +130,13 @@ async def catch_pin_transitions(key_history: KeyHistory, ghetto_blaster_controls
                     if single_key_stuff[-2:] == [2, 3]:
                         ghetto_blaster_controls.make_request_for(ghetto_blaster.PauseOrResume())
 
-                    print("pin went low")
                     colour = (255, 255, 255)
                 elif event.released:
                     print("pin went high")
+                    element.start_element()
                     colour = (255, 255, 255)
 
-                pixel_x = idx % 4
-                pixel_y = idx // 4
-                pixels.pixelrgb(pixel_x, pixel_y, colour[0], colour[1], colour[2])
+
+                # pixels.pixelrgb(pixel_x, pixel_y, colour[0], colour[1], colour[2])
             await asyncio.sleep(0)
 
