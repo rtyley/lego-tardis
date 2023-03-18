@@ -3,6 +3,9 @@ import board
 import keypad
 from adafruit_is31fl3731.keybow2040 import Keybow2040 as KeyPadLeds
 from adafruit_itertools import takewhile
+import supervisor
+from adafruit_ticks import ticks_diff
+import math
 
 from tardis import ghetto_blaster, windows
 
@@ -51,6 +54,43 @@ class KeyHistory:
         return single_key_stuff
 
 
+async def show_lights():
+    while True:
+        for idx in range(16):
+            pixel_x = idx % 4
+            pixel_y = idx // 4
+
+            pixels.pixelrgb(pixel_x, pixel_y, 255, 255, 255)
+            await asyncio.sleep(1)
+            # pixels.pixelrgb(pixel_x, pixel_y, 0, 0, 0)
+            await asyncio.sleep(1)
+
+def set_control_light(raw_level):
+    pixels.pixelrgb(0, 1, raw_level, raw_level, raw_level)
+
+async def test_control_light():
+    while True:
+        set_control_light(0)
+        await asyncio.sleep(0.5)
+        set_control_light(33) # With LiPo source, 33 is full off, 34 is faint
+        await asyncio.sleep(0.5)
+
+async def throb_control_light():
+    start_time = supervisor.ticks_ms()
+    base = 0
+    set_control_light(0)
+    await asyncio.sleep(4)
+    #level = 0
+    sweep = 255 - base
+    while True:
+        now = supervisor.ticks_ms()
+        time_since_start = ticks_diff(now, start_time)
+        level = base + int((sweep * ((1 + math.cos(time_since_start/500))/2)))
+        #level = 255 - level
+        set_control_light(level)
+        await asyncio.sleep(0.02)
+
+
 async def catch_pin_transitions(key_history: KeyHistory, ghetto_blaster_controls):
     anim = None
     with keypad.Keys(KEY_PINS, value_when_pressed=False) as keys:
@@ -70,14 +110,18 @@ async def catch_pin_transitions(key_history: KeyHistory, ghetto_blaster_controls
                     if single_key_stuff[-2:] == [14, 15]:
                         anim = asyncio.create_task(windows.whooshy_cycle())
 
+                    if single_key_stuff[-2:] == [0, 3]:
+                        show_lights()
+                        windows.set_all_windows(255)
+
                     if single_key_stuff[-2:] == [2, 3]:
                         ghetto_blaster_controls.make_request_for(ghetto_blaster.PauseOrResume())
 
                     print("pin went low")
-                    colour = (255, 128, 64)
+                    colour = (255, 255, 255)
                 elif event.released:
                     print("pin went high")
-                    colour = (4, 8, 16)
+                    colour = (255, 255, 255)
 
                 pixel_x = idx % 4
                 pixel_y = idx // 4

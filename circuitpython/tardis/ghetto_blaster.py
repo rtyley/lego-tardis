@@ -2,6 +2,7 @@ import board
 import audiobusio
 import audiomp3
 import asyncio
+import math
 
 
 # audio = audiobusio.I2SOut(board.GP0, board.GP1, board.INT)
@@ -24,6 +25,7 @@ class Command(object):
 class Play(Command):
     def __init__(self, mp3_file):
         self.mp3 = audiomp3.MP3Decoder(open(mp3_file, "rb"))
+        # self.mp3.sample_rate = math.floor(self.mp3.sample_rate * 1.1) # this does indeed play the music faster
 
     def execute(self, audio):
         audio.play(self.mp3)
@@ -58,5 +60,6 @@ async def poll_for_music_requests(controls):
         while True:
             command = controls.latest_command()
             if command is not None:
+                print("Command!")
                 command.execute(audio)
             await asyncio.sleep(0.05)
