@@ -25,7 +25,7 @@ async def main():
         # asyncio.create_task(windows.whoosh()),
         asyncio.create_task(tardis.clock.watch_clock()),
         asyncio.create_task(tardis.memory_game.poll()),
-        # asyncio.create_task(tardis_keypad.catch_pin_transitions(key_history, ghetto_blaster_controls)),
+        asyncio.create_task(tardis_keypad.catch_pin_transitions(key_history, ghetto_blaster_controls)),
 
         # asyncio.create_task(tardis_keypad.throb_control_light()),
 

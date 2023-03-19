@@ -1,5 +1,4 @@
-circuitpython/tardis/memory_game.pyimport random
-
+import random
 import board
 import audiobusio
 import audiomp3
