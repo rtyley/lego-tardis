@@ -7,7 +7,7 @@ out_file = filename + ".out.txt"
 
 def update_row(row):
     if row['Studio Color Code'] == "63":
-        row['Ins_RGB'] = '#013B6D'
+        row['Ins_RGB'] = '#014E90'
     return row
 
 
