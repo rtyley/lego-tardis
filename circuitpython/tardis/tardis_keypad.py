@@ -133,7 +133,7 @@ async def catch_pin_transitions(key_history: KeyHistory, ghetto_blaster_controls
                     colour = (255, 255, 255)
                 elif event.released:
                     print("pin went high")
-                    element.start_element()
+                    element.stop_element()
                     colour = (255, 255, 255)
 
 

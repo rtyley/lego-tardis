@@ -54,7 +54,7 @@ class Element:
 
     def start_element(self):
         self.set_button(True)
-        tone_volume = 0.01  # Increase this to increase the volume of the tone.
+        tone_volume = 0.1  # Increase this to increase the volume of the tone.
         frequency = self.note_f  # Set this to the Hz of the tone you want to generate.
         length = math.floor(8000 / frequency)
         print(length)
@@ -65,7 +65,6 @@ class Element:
         print("sine_wave_sample.sample_rate")
         print(sine_wave_sample.sample_rate)
         mixer.voice[0].play(sine_wave_sample, loop=True)
-        return length, tone_volume
 
     def stop_element(self):
         tone_volume = 0.01
@@ -87,10 +86,7 @@ GREEN  = Element("g5", (0, 255, 0), (-1, 1))
 ALL_ELEMENTS = [BLUE, YELLOW, RED, GREEN]
 
 def element_for_key(key):
-    for e in ALL_ELEMENTS:
-        print(e.all_keys)
-
-    next((e for e in ALL_ELEMENTS if key in e.all_keys))
+    return next(e for e in ALL_ELEMENTS if (key in e.all_keys))
 
 import audiomixer
 mixer = audiomixer.Mixer(voice_count=2, sample_rate=8000, channel_count=1,
@@ -109,11 +105,9 @@ async def poll():
         while True:
             seq.append(random.choice(ALL_ELEMENTS))
             speed_mult = 0.2 + math.pow(1.05,-len(seq))
-            await play_sequence(seq, speed_mult)
+            # await play_sequence(seq, speed_mult)
 
             player_pos_in_seq = 0
-
-
 
             await asyncio.sleep(2 * speed_mult)
 

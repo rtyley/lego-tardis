@@ -16,15 +16,16 @@ print("HIHI")
 
 
 async def main():
+    await asyncio.sleep(0.5)
     ghetto_blaster_controls = ghetto_blaster.Controls()
     key_history = tardis_keypad.KeyHistory()
 
 
-
     await asyncio.gather(
-        # asyncio.create_task(windows.whoosh()),
-        asyncio.create_task(tardis.clock.watch_clock()),
-        asyncio.create_task(tardis.memory_game.poll()),
+        asyncio.create_task(windows.whoosh()),
+        # asyncio.create_task(tardis.clock.watch_clock()),
+
+        # asyncio.create_task(tardis.memory_game.poll()),
         asyncio.create_task(tardis_keypad.catch_pin_transitions(key_history, ghetto_blaster_controls)),
 
         # asyncio.create_task(tardis_keypad.throb_control_light()),
