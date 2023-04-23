@@ -8,13 +8,7 @@ from adafruit_ticks import ticks_diff
 import math
 
 from tardis import ghetto_blaster, windows, memory_game
-
-# KEY_PIN_ARRAY = [
-#     [board.SW0, board.SW1, board.SW2, board.SW3],
-#     [board.SW4, board.SW5, board.SW6, board.SW7],
-#     [board.SW8, board.SW9, board.SW10, board.SW11],
-#     [board.SW12, board.SW13, board.SW14, board.SW15]
-# ]
+from tardis.device_mode import DeviceMode
 
 KEY_PINS = (
     board.SW0, board.SW1, board.SW2, board.SW3,
@@ -91,7 +85,7 @@ async def throb_control_light():
         await asyncio.sleep(0.02)
 
 
-async def catch_pin_transitions(key_history: KeyHistory, ghetto_blaster_controls):
+async def catch_pin_transitions(key_history: KeyHistory, device_mode: DeviceMode):
     anim = None
     with keypad.Keys(KEY_PINS, value_when_pressed=False) as keys:
         while True:
@@ -108,35 +102,10 @@ async def catch_pin_transitions(key_history: KeyHistory, ghetto_blaster_controls
 
                 print("k")
                 print(k)
-                element = memory_game.element_for_key(k)
-                print("element")
-                print(element)
-
                 if event.pressed:
                     print("pin went low")
-                    element.start_element()
-
-                    if single_key_stuff[-2:] == [0, 1]:
-                        ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayIAmTheDoctor)
-                    if single_key_stuff[-2:] == [1, 0]:
-                        ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayTardisLanding)
-                    if single_key_stuff[-2:] == [14, 15]:
-                        anim = asyncio.create_task(windows.whooshy_cycle())
-
-                    if single_key_stuff[-2:] == [0, 3]:
-                        show_lights()
-                        windows.set_all_windows(255)
-
-                    if single_key_stuff[-2:] == [2, 3]:
-                        ghetto_blaster_controls.make_request_for(ghetto_blaster.PauseOrResume())
-
-                    colour = (255, 255, 255)
                 elif event.released:
                     print("pin went high")
-                    element.stop_element()
-                    colour = (255, 255, 255)
-
-
-                # pixels.pixelrgb(pixel_x, pixel_y, colour[0], colour[1], colour[2])
+                device_mode.get_activity().handle_key(event, k, single_key_stuff)
             await asyncio.sleep(0)
 
