@@ -4,43 +4,34 @@ import time
 import audiobusio
 import asyncio
 from adafruit_is31fl3731.keybow2040 import Keybow2040 as KeyPadLeds
-import array
 import math
 import board
-from audiocore import RawSample
 import keypad
+import audiomixer
+from audiocore import RawSample
 
+from tardis import tones
 from tardis.device_mode import Activity
 
 i2c = board.I2C()
 pixels = KeyPadLeds(i2c)
 
 
-def note_freq(name):
-    octave = int(name[-1])
-    PITCHES = "c,c#,d,d#,e,f,f#,g,g#,a,a#,b".split(",")
-    pitch = PITCHES.index(name[:-1].lower())
-    print(name)
-    print(pitch)
-    print(octave)
-    return 440 * 2 ** ((octave - 4) + (pitch - 9) / 12.)
-
-
 class Element:
 
-    def __init__(self, note, colour, quadrant_vector):
+    def __init__(self, note: str, colour, quadrant_vector):
         self.note = note
         self.colour = colour
-        self.note_f = note_freq(self.note)
+        self.tone = tones.tone_sample(0.1, tones.note_freq(note))
         self.quadrant_vector = quadrant_vector
 
         (qx, qy) = quadrant_vector
 
-        def keyFor(x, y):
+        def key_for(x, y):
             return int(1.5 + (x * qx) + (qx / 2)), int(1.5 + (y * qy) + (qy / 2))
 
-        self.resting_key = keyFor(0, 0)
-        self.other_keys = [keyFor(0, 1), keyFor(1, 1), keyFor(1, 0)]
+        self.resting_key = key_for(0, 0)
+        self.other_keys = [key_for(0, 1), key_for(1, 1), key_for(1, 0)]
         self.all_keys = [self.resting_key] + self.other_keys
 
     def set_button(self, activate):
@@ -54,27 +45,14 @@ class Element:
 
     def start_element(self):
         self.set_button(True)
-        tone_volume = 0.01  # Increase this to increase the volume of the tone.
-        frequency = self.note_f  # Set this to the Hz of the tone you want to generate.
-        length = math.floor(8000 / frequency)
-        print(length)
-        sine_wave = array.array("H", [0] * length)
-        for i in range(length):
-            sine_wave[i] = int((1 + math.sin(math.pi * 2 * i / length)) * tone_volume * (2 ** 15 - 1))
-        sine_wave_sample = RawSample(sine_wave)
-        # print("sine_wave_sample.sample_rate")
-        # print(sine_wave_sample.sample_rate)
-        mixer.voice[0].play(sine_wave_sample, loop=True)
+        self.__play(self.tone)
 
     def stop_element(self):
-        tone_volume = 0.01
-        length = 8
-        silence_wave = array.array("H", [0] * length)
-        for i in range(length):
-            silence_wave[i] = int(tone_volume * (2 ** 15 - 1))
-        silence_wave_sample = RawSample(silence_wave)
-        mixer.voice[0].play(silence_wave_sample, loop=True)
+        self.__play(tones.silence_sample())
         self.set_button(False)
+
+    def __play(self, sample: RawSample):
+        mixer.voice[0].play(sample, loop=True)
 
 
 # https://en.wikipedia.org/wiki/Simon_(game)#Gameplay
@@ -88,9 +66,6 @@ ALL_ELEMENTS = [BLUE, YELLOW, RED, GREEN]
 
 def element_for_key(key):
     return next(e for e in ALL_ELEMENTS if (key in e.all_keys))
-
-
-import audiomixer
 
 mixer = audiomixer.Mixer(voice_count=2, sample_rate=8000, channel_count=1,
                          bits_per_sample=16, samples_signed=False)
@@ -122,10 +97,9 @@ class MemoryGame(Activity):
         with audiobusio.I2SOut(board.GP0, board.GP1, board.INT) as audio:
             audio.play(mixer)
 
-            for element in ALL_ELEMENTS:
-                element.set_button(False)
-
             while True:
+                for element in ALL_ELEMENTS:
+                    element.set_button(False)
                 self.seq = []
                 self.game_over = False
                 while not self.game_over:
