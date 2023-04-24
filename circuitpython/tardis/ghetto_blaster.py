@@ -2,20 +2,7 @@ import board
 import audiobusio
 import audiomp3
 import asyncio
-import math
 
-
-# audio = audiobusio.I2SOut(board.GP0, board.GP1, board.INT)
-# audio = audiobusio.I2SOut(board.GP0, board.GP1, board.INT)
-
-# mp3 = audiomp3.MP3Decoder(open("tardis/IAmTheDoctor.Part1.40kbps.mp3", "rb"))
-# print(f"mp3= {mp3}")
-# audio.play(mp3)
-#
-# # This allows you to do other things while the audio plays!
-# while audio.playing:
-#     print(f"samples_decoded = {mp3.samples_decoded}")
-#     pass
 
 class Command(object):
     def execute(self, audio):
@@ -55,6 +42,7 @@ class Controls:
 PlayIAmTheDoctor = Play("tardis/IAmTheDoctor.Part1.40kbps.mp3")
 PlayTardisLanding = Play("tardis/TardisLands.TheChase.40kbps.mp3")
 PlayOriginalTheme = Play("tardis/DoctorWhoOriginalTheme.mp3")
+
 
 async def poll_for_music_requests(controls):
     with audiobusio.I2SOut(board.GP0, board.GP1, board.INT) as audio:

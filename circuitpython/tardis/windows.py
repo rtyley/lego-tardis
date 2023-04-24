@@ -96,3 +96,7 @@ def set_windows(values):
     __led_buffer[8] = values[7]  # int(values[]/8)
     with aw.i2c_device as i2cDev:
         i2cDev.write(__led_buffer)
+
+
+def set_window_on(window_index: int, lit: bool):
+    aw.set_constant_current(windowPinNumbers[window_index], 255 if lit else 0)

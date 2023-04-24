@@ -27,7 +27,7 @@ class Element:
 
         (qx, qy) = quadrant_vector
 
-        def key_for(x, y):
+        def key_for(x: int, y: int):
             return int(1.5 + (x * qx) + (qx / 2)), int(1.5 + (y * qy) + (qy / 2))
 
         self.resting_key = key_for(0, 0)
@@ -64,7 +64,7 @@ GREEN = Element("g5", (0, 255, 0), (-1, 1))
 ALL_ELEMENTS = [BLUE, YELLOW, RED, GREEN]
 
 
-def element_for_key(key):
+def element_for_key(key) -> Element:
     return next(e for e in ALL_ELEMENTS if (key in e.all_keys))
 
 mixer = audiomixer.Mixer(voice_count=2, sample_rate=8000, channel_count=1,
@@ -87,7 +87,7 @@ class MemoryGame(Activity):
     game_over = False
     go_time_out = None
 
-    def speed_mult(self):
+    def speed_mult(self) -> float:
         return 0.2 + math.pow(1.05, -len(self.seq))
 
     def reset_go_time_out(self):

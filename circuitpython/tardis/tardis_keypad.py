@@ -7,7 +7,6 @@ import supervisor
 from adafruit_ticks import ticks_diff
 import math
 
-from tardis import ghetto_blaster, windows, memory_game
 from tardis.device_mode import DeviceMode
 
 KEY_PINS = (
@@ -74,28 +73,24 @@ async def throb_control_light():
     base = 0
     set_control_light(0)
     await asyncio.sleep(4)
-    #level = 0
     sweep = 255 - base
     while True:
         now = supervisor.ticks_ms()
         time_since_start = ticks_diff(now, start_time)
         level = base + int((sweep * ((1 + math.cos(time_since_start/500))/2)))
-        #level = 255 - level
         set_control_light(level)
         await asyncio.sleep(0.02)
 
 
 async def catch_pin_transitions(key_history: KeyHistory, device_mode: DeviceMode):
-    anim = None
     with keypad.Keys(KEY_PINS, value_when_pressed=False) as keys:
         while True:
             event = keys.events.get()
             if event:
-                idx = event.key_number
                 key_history.add_event(event)
-
                 single_key_stuff = key_history.single_key_hist()
 
+                idx = event.key_number
                 pixel_x = idx % 4
                 pixel_y = idx // 4
                 k = (pixel_x, pixel_y)

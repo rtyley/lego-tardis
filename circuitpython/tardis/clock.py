@@ -4,7 +4,6 @@ import adafruit_ticks
 import board
 import adafruit_ds3231  # battery-backed RTC
 import supervisor
-import countio
 import time
 from sys import stdin
 from select import select
@@ -19,7 +18,6 @@ print(t)  # uncomment for debugging
 
 
 async def watch_clock():
-    start_ticks = supervisor.ticks_ms()
     last_rtc = batteryRTC.datetime
     while True:
         now_rtc = batteryRTC.datetime
@@ -29,30 +27,30 @@ async def watch_clock():
             ticks_offset = now_ticks % 1000
             print(ticks_offset)
             if now_rtc.tm_sec % 10 == 0:
-                print('RTC :', end='');print(now_rtc)
+                print('RTC :', end='');
+                print(now_rtc)
                 if ticks_offset > 0:
-                    while (supervisor.ticks_ms()+4) % 1000 >= ticks_offset:
+                    while (supervisor.ticks_ms() + 4) % 1000 >= ticks_offset:
                         await asyncio.sleep(0.0001)
                     batteryRTC.datetime = now_rtc
 
-
-        receivedTimeDataFromUsb = readDeadlineAndTimeToDeadlineFromUSB()
-        if receivedTimeDataFromUsb:
-            deadline_fields, deadline_ticks = receivedTimeDataFromUsb
+        received_time_data_from_usb = readDeadlineAndTimeToDeadlineFromUSB()
+        if received_time_data_from_usb:
+            deadline_fields, deadline_ticks = received_time_data_from_usb
             (year, month, day, hour, minute, second, wday, yday) = deadline_fields
             while ticks_diff(deadline_ticks, supervisor.ticks_ms()) > 0:
-                await asyncio.sleep(0.001/2)  # *ticks_diff(deadline, time.ticks_ms())
+                await asyncio.sleep(0.001 / 2)  # *ticks_diff(deadline, time.ticks_ms())
             batteryRTC.datetime = time.struct_time((year, month, day, hour, minute, second, wday, yday, -1))
 
-        await asyncio.sleep(0.001/2)
+        await asyncio.sleep(0.001 / 2)
 
 
 def readDeadlineAndTimeToDeadlineFromUSB():
-    ch, buffer = '',''
+    ch, buffer = '', ''
     ticks_ms_for_read_instant = supervisor.ticks_ms()
     while stdin in select([stdin], [], [], 0)[0]:
         ch = stdin.read(1)
-        buffer = buffer+ch
+        buffer = buffer + ch
     if buffer:
         print("Received USB data!")
         for i in range(len(buffer)):
@@ -65,6 +63,7 @@ def readDeadlineAndTimeToDeadlineFromUSB():
             deadLineFields = buffFields[:-1]
             deadLineFields.append(0)
             timeToDeadLine = buffFields[-1]
-            print("timeToDeadLine:",end='');print(timeToDeadLine)
+            print("timeToDeadLine:", end='');
+            print(timeToDeadLine)
             set_all_windows(timeToDeadLine // 4)
             return deadLineFields, adafruit_ticks.ticks_add(ticks_ms_for_read_instant, timeToDeadLine)

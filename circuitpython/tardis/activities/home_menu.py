@@ -3,8 +3,7 @@ from adafruit_is31fl3731.keybow2040 import Keybow2040 as KeyPadLeds
 import board
 
 from tardis import ghetto_blaster, windows
-from tardis.device_mode import Activity, DeviceMode
-from tardis.memory_game import MemoryGame
+from tardis.device_mode import Activity
 
 i2c = board.I2C()
 pixels = KeyPadLeds(i2c)

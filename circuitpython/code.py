@@ -1,14 +1,10 @@
 import asyncio
 
-from tardis import tardis_keypad, windows, ghetto_blaster, home_menu, device_mode  # , memory_game
-
-# from tardis import sound
-import board
+from tardis import tardis_keypad, windows, ghetto_blaster  # , memory_game
+from tardis.activities import home_menu
 
 from tardis.device_mode import DeviceMode
-from tardis.hardware.keybow2040 import KeyBow2040I2SPins as I2SPins
-import tardis.clock
-from tardis.memory_game import MemoryGame
+from tardis.activities.memory_game import MemoryGame
 
 print("HIHI")
 
