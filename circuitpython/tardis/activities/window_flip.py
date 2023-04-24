@@ -25,7 +25,9 @@ class WindowFlip(Activity):
         pixels.pixelrgb(coords[0], coords[1], colour[0], colour[1], colour[2])
 
     def flip_random_window(self):
-        window_index = random.randint(0, tardis.windows.NUM_WINDOWS)
+        window_index = random.randrange(int(tardis.windows.NUM_WINDOWS / 2))
+        print(window_index)
         lit = not self.window_buf[window_index]
         tardis.windows.set_window_on(window_index, lit)
+        tardis.windows.set_window_on(window_index + int(tardis.windows.NUM_WINDOWS / 2), lit)
         self.window_buf[window_index] = lit

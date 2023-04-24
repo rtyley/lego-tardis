@@ -11,8 +11,7 @@ class Activity(object):
 
 
 class DeviceMode:
-    def __init__(self, activity: Activity):
-        self._current_activity = activity
+    _current_activity = None
 
     def set_activity(self, activity: Activity):
         self._current_activity = activity
