@@ -16,12 +16,11 @@ class WindowFlip(Activity):
         pass
 
     def handle_key(self, event: keypad.Event, coords, single_key_stuff):
+        self.flip_random_window()
         if event.pressed:
-            self.flip_random_window()
             colour = (255, 255, 0)
         elif event.released:
             colour = (255, 255, 255)
-
         pixels.pixelrgb(coords[0], coords[1], colour[0], colour[1], colour[2])
 
     def flip_random_window(self):

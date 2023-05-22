@@ -14,6 +14,9 @@ class HomeMenu(Activity):
         # self.dev_mode = dev_mode
         self.ghetto_blaster_controls = ghetto_blaster_controls
 
+    async def start(self):
+        pass
+
     def handle_key(self, event, coords, single_key_stuff):
         if event.pressed:
             last_2_keys = single_key_stuff[-2:]

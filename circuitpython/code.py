@@ -18,10 +18,10 @@ async def main():
     ghetto_blaster_controls = ghetto_blaster.Controls()
     key_history = tardis_keypad.KeyHistory()
     dev_mode = DeviceMode()
-    dev_mode.set_activity(WindowFlip())
+    dev_mode.set_activity(HomeMenu(ghetto_blaster_controls))
 
     await asyncio.gather(
-        # asyncio.create_task(windows.whoosh()),
+        asyncio.create_task(windows.whoosh()),
         # asyncio.create_task(tardis.clock.watch_clock()),
 
         asyncio.create_task(tardis_keypad.catch_pin_transitions(key_history, dev_mode)),
@@ -34,9 +34,5 @@ async def main():
 
 
 asyncio.run(main())
-
-# tardis.onKeys(Pressed(All), setMode(TakeOffAndSleep))
-# tardis.onKeys(Released(All), setMode(Scrabble))
-# tardis.onKeys(KeySequence(KEY[0][0],KEY[1][0],KEY[0][-1]), setMode(SetTime))
 
 # tardis.start()
