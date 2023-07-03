@@ -31,10 +31,22 @@ print(list_ports.comports())
 #
 # Perform
 
+
+class Device:
+    def __init__(self, name: str, port: str):
+        self.name = name
+        self.port = port
+
+
 # VID:PID for different devices:
 # RPi Pico                  : 2E8A:0005
 # Pimoroni Pico LiPo (16MB) : 2E8A:1003
 # Keybow 2040               : 16D0:08C6
+
+TARDIS_DEVICE = Device("TARDIS", "16D0:08C6")
+PASSPHRASE_DISPLAY_DEVICE = Device("Passphrase Display", "2E8A:0005")
+
+ALL_DEVICE = [TARDIS_DEVICE, PASSPHRASE_DISPLAY_DEVICE]
 
 picoPorts = list(list_ports.grep("16D0:08C6"))
 if not picoPorts:

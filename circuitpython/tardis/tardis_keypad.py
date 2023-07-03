@@ -34,7 +34,7 @@ class KeyHistory:
         if len(self.key_hist) > 32:
             del self.key_hist[0]
 
-        print([set(x) for x in self.key_hist[-5:]])
+        # print([set(x) for x in self.key_hist[-5:]])
 
     def single_key_hist(self):
         def foo(x):
@@ -57,6 +57,13 @@ async def show_lights():
             await asyncio.sleep(1)
             # pixels.pixelrgb(pixel_x, pixel_y, 0, 0, 0)
             await asyncio.sleep(1)
+
+def set_key(key_num, r, g, b):
+    pixel_x = key_num % 4
+    pixel_y = key_num // 4
+
+    pixels.pixelrgb(pixel_x, pixel_y, r, g, b)
+
 
 def set_control_light(raw_level):
     pixels.pixelrgb(0, 1, raw_level, raw_level, raw_level)
@@ -94,13 +101,11 @@ async def catch_pin_transitions(key_history: KeyHistory, device_mode: DeviceMode
                 pixel_x = idx % 4
                 pixel_y = idx // 4
                 k = (pixel_x, pixel_y)
-
-                print("k")
-                print(k)
-                if event.pressed:
-                    print("pin went low")
-                elif event.released:
-                    print("pin went high")
+                print(f'k: {k} idx: {idx}')
+                # if event.pressed:
+                #     print("pin went low")
+                # elif event.released:
+                #     print("pin went high")
                 device_mode.get_activity().handle_key(event, k, single_key_stuff)
             await asyncio.sleep(0)
 
