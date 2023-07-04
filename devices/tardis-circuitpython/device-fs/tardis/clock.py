@@ -28,9 +28,9 @@ print(t)  # uncomment for debugging
 #     print(f'clock_check:keybow::rp2040_rtc:')
 
 
-def parse()
-    # upcoming-clock:2020-03-20T14:28:23Z,345ms
-    altMSG = f'upcoming-clock:{t.isoformat()}Z,{millisToWaitForDeadline}ms'
+# def parse()
+#     # upcoming-clock:2020-03-20T14:28:23Z,345ms
+#     altMSG = f'upcoming-clock:{t.isoformat()}Z,{millisToWaitForDeadline}ms'
 
 
 def set_rp2040_rtc_from_battery_rtc():

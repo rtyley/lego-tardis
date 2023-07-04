@@ -6,13 +6,21 @@ import datetime
 import textwrap
 from datetime import timezone, timedelta
 from time import gmtime
+import argparse
 
 import serial
 import time
 from serial.tools import list_ports
 
-print("Hi there")
-print(list_ports.comports())
+parser = argparse.ArgumentParser(
+    description='Communicate through the vortex'
+)
+parser.add_argument('--device-type',
+                    required=True,
+                    help='TARDIS or DISPLAY')
+
+args = parser.parse_args()
+
 
 # The aim is to get the client RTC clock ticking over its second field at exactly the right moment.
 # Task 1: We want to see if we literally can change the second-tick-over to occur at different millisecond offsets
@@ -44,28 +52,53 @@ class Device:
 # Keybow 2040               : 16D0:08C6
 
 TARDIS_DEVICE = Device("TARDIS", "16D0:08C6")
-PASSPHRASE_DISPLAY_DEVICE = Device("Passphrase Display", "2E8A:0005")
+PASSPHRASE_DISPLAY_DEVICE = Device("Display", "2E8A:0005")
 
 ALL_DEVICE = [TARDIS_DEVICE, PASSPHRASE_DISPLAY_DEVICE]
 
-picoPorts = list(list_ports.grep("16D0:08C6"))
-if not picoPorts:
-    print("No Raspberry Pi Pico found")
-else:
-    print("Found device")
-    picoSerialPort = picoPorts[0].device
+device_type = next(x for x in ALL_DEVICE if x.name.casefold() == args.device_type.casefold())
+
+print(f'device_type: {device_type.name}')
+
+
+def send_timecube(con):
+    global originalTime, t, millisToWaitForDeadline, timeCube
     originalTime = datetime.datetime.now(timezone.utc)
     t = originalTime.replace(microsecond=0) + datetime.timedelta(seconds=1)
     millisToWaitForDeadline = int((t - originalTime) / timedelta(milliseconds=1))
-
     # year, month, day, hour, minute, second, wday
     print("gmtime=" + str(gmtime()))
     timeCube = ",".join(
         [str(x) for x in [t.year, t.month, t.day, t.hour, t.minute, t.second, t.weekday(), millisToWaitForDeadline]])
+    syncMSG = 'T' + timeCube + '_'
+    console.write(bytes(syncMSG, "ascii"))
+
+    timeAfterSending = datetime.datetime.now(timezone.utc)
+    print("Raspberry Pi Pico found at " + str(picoSerialPort))
+    print(f'Original time was\t{str(originalTime)}')
+    print(f'Time after sending\t{str(timeAfterSending)}')
+    print(f'Deadline will be\t{str(t)}')
+    print(f'millisToWaitForDeadline were {millisToWaitForDeadline}')
+    print(f'transmit cycle took {timeAfterSending - originalTime}')
+
+    print("Time sync epoch USB MSG: " + syncMSG)
+    print("t: " + str(t))
+    time.sleep((t - datetime.datetime.now(timezone.utc)).total_seconds())
+    print(f'Time is now {datetime.datetime.now(timezone.utc)}')
+
+
+picoPorts = list(list_ports.grep(device_type.port))
+if not picoPorts:
+    print("No Raspberry Pi Pico found")
+else:
+    print(f"Found {device_type.name} device:")
+    for port_info in picoPorts:
+        print(f'* {port_info}')
+
+    picoSerialPort = picoPorts[0].device
 
     with serial.Serial(picoSerialPort) as console:
-        syncMSG = 'T'+timeCube+'_'
-        console.write(bytes(syncMSG, "ascii"))
+        # send_timecube(console)
 
         while True:
             num_bytes = console.inWaiting()
@@ -73,18 +106,3 @@ else:
                 input_data = console.read(num_bytes)
                 print(textwrap.indent(input_data.decode("utf-8"), '> '))
             time.sleep(0.01)
-
-
-    timeAfterSending = datetime.datetime.now(timezone.utc)
-    print( "Raspberry Pi Pico found at "+str(picoSerialPort) )
-    print(f'Original time was\t{str(originalTime)}')
-    print(f'Time after sending\t{str(timeAfterSending)}')
-    print(f'Deadline will be\t{str(t)}')
-    print(f'millisToWaitForDeadline were {millisToWaitForDeadline}')
-    print(f'transmit cycle took {timeAfterSending - originalTime}')
-
-    print( "Time sync epoch USB MSG: "+syncMSG )
-    print( "t: "+str(t) )
-    time.sleep((t-datetime.datetime.now(timezone.utc)).total_seconds())
-    print( f'Time is now {datetime.datetime.now(timezone.utc)}')
-
