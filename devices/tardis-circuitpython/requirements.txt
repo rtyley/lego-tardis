@@ -5,3 +5,4 @@ adafruit_ds3231
 adafruit_aw9523
 adafruit_is31fl3731
 adafruit_ticks
+adafruit-circuitpython-hashlib

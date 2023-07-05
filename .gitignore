@@ -6,6 +6,7 @@
 .fseventsd/
 boot_out.txt
 .TemporaryItems/
+._*
 
 *.mp3
 tardis-circuitpython/device-fs/lib/
