@@ -5,6 +5,7 @@
 .metadata_never_index
 .fseventsd/
 boot_out.txt
+.TemporaryItems/
 
 *.mp3
 tardis-circuitpython/device-fs/lib/
