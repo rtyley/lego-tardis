@@ -1,6 +1,3 @@
-import random
-import time
-
 from adafruit_is31fl3731.keybow2040 import Keybow2040 as KeyPadLeds
 import board
 import keypad

@@ -9,4 +9,4 @@ boot_out.txt
 ._*
 
 *.mp3
-tardis-circuitpython/device-fs/lib/
+devices/tardis-circuitpython/device-fs/lib/

@@ -1,1 +1,1 @@
-from hashlib import sha256
+from adafruit_hashlib import sha256

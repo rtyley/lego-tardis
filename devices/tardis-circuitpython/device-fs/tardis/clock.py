@@ -21,11 +21,12 @@ t = batteryRTC.datetime
 print(t)  # uncomment for debugging
 
 
-# def clock_check(expensive_clock: bool) -> time.struct_time:
-#     if (expensive_clock):
-#     datetime
-#
-#     print(f'clock_check:keybow::rp2040_rtc:')
+def clock_check(expensive_clock: bool) -> time.struct_time:
+    t = batteryRTC.datetime if expensive_clock else rp2040_rtc.datetime
+    name = "ds3231" if expensive_clock else "rp2040"
+    timestamp = "%04d-%02d-%02dT%02d:%02d:%02dZ" % (t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
+    print(f'clock_check:{name}={timestamp}')
+    return t
 
 
 # def parse()
@@ -42,22 +43,32 @@ def set_rp2040_rtc_from_battery_rtc():
     print(f'latest_battery_rtc_time: {latest_battery_rtc_time}')
 
 async def watch_clock():
-    last_rtc = batteryRTC.datetime
+    last_battery_rtc = batteryRTC.datetime
+    last_rp2040_rtc = rp2040_rtc.datetime
     print("Waiting for time signal....")
     while True:
-        now_rtc = batteryRTC.datetime
+        now_rp2040_rtc = rp2040_rtc.datetime
+        now_battery_rtc = batteryRTC.datetime
+        if now_rp2040_rtc.tm_sec % 5 == 0 and now_rp2040_rtc != last_rp2040_rtc:
+            last_rp2040_rtc = clock_check(False)
+        if now_battery_rtc.tm_sec % 5 == 0 and now_battery_rtc != last_battery_rtc:
+            last_battery_rtc = clock_check(True)
+
+
         now_ticks = supervisor.ticks_ms()
-        if now_rtc.tm_sec != last_rtc.tm_sec:
-            last_rtc = now_rtc
-            ticks_offset = now_ticks % 1000
-            # print(ticks_offset)
-            if now_rtc.tm_sec % 10 == 0:
-                print('RTC :', end='');
-                print(now_rtc)
-                if ticks_offset > 0:
-                    while (supervisor.ticks_ms() + 4) % 1000 >= ticks_offset:
-                        await asyncio.sleep(0.0001)
-                    batteryRTC.datetime = now_rtc
+        # if now_rtc.tm_sec != last_rtc.tm_sec:
+        #     last_rtc = now_rtc
+        #     ticks_offset = now_ticks % 1000
+        #     # print(ticks_offset)
+        #     if now_rtc.tm_sec % 10 == 0:
+        #         clock_check(True)
+        #         clock_check(False)
+        #         print('RTC :', end='');
+        #         print(now_rtc)
+        #         if ticks_offset > 0:
+        #             while (supervisor.ticks_ms() + 4) % 1000 >= ticks_offset:
+        #                 await asyncio.sleep(0.0001)
+        #             batteryRTC.datetime = now_rtc
 
         received_time_data_from_usb = readDeadlineAndTimeToDeadlineFromUSB()
         if received_time_data_from_usb:

@@ -103,6 +103,18 @@ else:
         while True:
             num_bytes = console.inWaiting()
             if num_bytes > 0:
-                input_data = console.read(num_bytes)
-                print(textwrap.indent(input_data.decode("utf-8"), '> '))
+                now = datetime.datetime.now()
+                input_data: str = console.read(num_bytes).decode("utf-8")
+                for line in input_data.splitlines():
+                    prefix = "clock_check:"
+                    suffix = "Z"
+                    starts_with_prefix = line.startswith(prefix)
+                    ends_with_suffix = line.endswith(suffix)
+                    if starts_with_prefix and ends_with_suffix:
+                        name, timestamp = line.removeprefix(prefix).removesuffix(suffix).split("=")
+                        dt = datetime.datetime.fromisoformat(timestamp)
+                        # print(f'dt={dt} now={now}')
+                        print(f'{name}:{(dt - now).total_seconds():.3f}s')
+                    # else:
+                    #   print(textwrap.indent(line, '> '))
             time.sleep(0.01)
