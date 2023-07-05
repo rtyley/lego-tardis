@@ -35,12 +35,15 @@ def clock_check(expensive_clock: bool) -> time.struct_time:
 
 
 def set_rp2040_rtc_from_battery_rtc():
-    initial_battery_rtc_time = batteryRTC.datetime
-    latest_battery_rtc_time = initial_battery_rtc_time
-    while latest_battery_rtc_time == initial_battery_rtc_time:
-        latest_battery_rtc_time = batteryRTC.datetime
+    for x in range(2):
+        initial_battery_rtc_time = batteryRTC.datetime
+        latest_battery_rtc_time = initial_battery_rtc_time
+        while latest_battery_rtc_time == initial_battery_rtc_time:
+            latest_battery_rtc_time = batteryRTC.datetime
+
     rp2040_rtc.datetime = latest_battery_rtc_time
     print(f'latest_battery_rtc_time: {latest_battery_rtc_time}')
+    print(f'rp2040_rtc.datetime: {rp2040_rtc.datetime}')
 
 async def watch_clock():
     last_battery_rtc = batteryRTC.datetime

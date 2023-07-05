@@ -2,14 +2,15 @@
 #
 # Vendor:Product ID for Raspberry Pi Pico is 2E8A:0005
 #
+import argparse
 import datetime
 import textwrap
-from datetime import timezone, timedelta
+import time
+from datetime import datetime, timezone
+from datetime import timedelta
 from time import gmtime
-import argparse
 
 import serial
-import time
 from serial.tools import list_ports
 
 parser = argparse.ArgumentParser(
@@ -63,8 +64,8 @@ print(f'device_type: {device_type.name}')
 
 def send_timecube(con):
     global originalTime, t, millisToWaitForDeadline, timeCube
-    originalTime = datetime.datetime.now(timezone.utc)
-    t = originalTime.replace(microsecond=0) + datetime.timedelta(seconds=1)
+    originalTime = datetime.now(timezone.utc)
+    t = originalTime.replace(microsecond=0) + timedelta(seconds=1)
     millisToWaitForDeadline = int((t - originalTime) / timedelta(milliseconds=1))
     # year, month, day, hour, minute, second, wday
     print("gmtime=" + str(gmtime()))
@@ -73,7 +74,7 @@ def send_timecube(con):
     syncMSG = 'T' + timeCube + '_'
     console.write(bytes(syncMSG, "ascii"))
 
-    timeAfterSending = datetime.datetime.now(timezone.utc)
+    timeAfterSending = datetime.now(timezone.utc)
     print("Raspberry Pi Pico found at " + str(picoSerialPort))
     print(f'Original time was\t{str(originalTime)}')
     print(f'Time after sending\t{str(timeAfterSending)}')
@@ -83,8 +84,8 @@ def send_timecube(con):
 
     print("Time sync epoch USB MSG: " + syncMSG)
     print("t: " + str(t))
-    time.sleep((t - datetime.datetime.now(timezone.utc)).total_seconds())
-    print(f'Time is now {datetime.datetime.now(timezone.utc)}')
+    time.sleep((t - datetime.now(timezone.utc)).total_seconds())
+    print(f'Time is now {datetime.now(timezone.utc)}')
 
 
 picoPorts = list(list_ports.grep(device_type.port))
@@ -98,10 +99,10 @@ else:
     picoSerialPort = picoPorts[0].device
 
     with serial.Serial(picoSerialPort) as console:
-        # send_timecube(console)
+        send_timecube(console)
 
         while True:
-            now = datetime.datetime.now()
+            now = datetime.now(timezone.utc)
             num_bytes = console.inWaiting()
             if num_bytes > 0:
                 input_data: str = console.read(num_bytes).decode("utf-8")
@@ -112,9 +113,9 @@ else:
                     ends_with_suffix = line.endswith(suffix)
                     if starts_with_prefix and ends_with_suffix:
                         name, timestamp = line.removeprefix(prefix).removesuffix(suffix).split("=")
-                        dt = datetime.datetime.fromisoformat(timestamp)
-                        # print(f'dt={dt} now={now}')
+                        dt = datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
+                        print(f'{name}: dt={dt} now={now}')
                         print(f'{name}:{(dt - now).total_seconds():.3f}s')
-                    # else:
-                    #   print(textwrap.indent(line, '> '))
+                    else:
+                      print(textwrap.indent(line, '> '))
             time.sleep(0.01)
