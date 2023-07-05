@@ -89,7 +89,7 @@ def send_timecube(con):
 
 picoPorts = list(list_ports.grep(device_type.port))
 if not picoPorts:
-    print("No Raspberry Pi Pico found")
+    print(f"No {device_type.name} found")
 else:
     print(f"Found {device_type.name} device:")
     for port_info in picoPorts:
@@ -101,9 +101,9 @@ else:
         # send_timecube(console)
 
         while True:
+            now = datetime.datetime.now()
             num_bytes = console.inWaiting()
             if num_bytes > 0:
-                now = datetime.datetime.now()
                 input_data: str = console.read(num_bytes).decode("utf-8")
                 for line in input_data.splitlines():
                     prefix = "clock_check:"
