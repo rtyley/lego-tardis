@@ -99,7 +99,7 @@ else:
     picoSerialPort = picoPorts[0].device
 
     with serial.Serial(picoSerialPort) as console:
-        send_timecube(console)
+        # send_timecube(console)
 
         while True:
             now = datetime.now(timezone.utc)
@@ -115,7 +115,8 @@ else:
                         name, timestamp = line.removeprefix(prefix).removesuffix(suffix).split("=")
                         dt = datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
                         print(f'{name}: dt={dt} now={now}')
-                        print(f'{name}:{(dt - now).total_seconds():.3f}s')
+                        diff = (dt - now).total_seconds()
+                        print(f'{name}:{"-" if diff < 0 else "+"}{abs(diff):.3f}s {"✅" if abs(diff) < 0.5 else "❌"}')
                     else:
                       print(textwrap.indent(line, '> '))
             time.sleep(0.01)
