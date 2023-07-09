@@ -3,7 +3,7 @@ import asyncio
 from tardis import tardis_keypad, ghetto_blaster, clock  # , memory_game
 from tardis.activities.window_flip import WindowFlip
 from tardis.device_mode import DeviceMode
-
+from tardis.clock_reporter import battery_rtc_reporter
 
 # I2SPins().diagnostic_check()
 
@@ -17,9 +17,11 @@ async def main():
     # dev_mode.set_activity(TreasureHunt(ghetto_blaster_controls))
     dev_mode.set_activity(WindowFlip(ghetto_blaster_controls))
 
+    battery_rtc_reporter.start()
     await asyncio.gather(
         # asyncio.create_task(windows.whoosh()),
-        asyncio.create_task(clock.watch_clock()),
+        # asyncio.create_task(clock.clock_reporters()),
+        # asyncio.create_task(clock.watch_clock()),
 
         asyncio.create_task(tardis_keypad.catch_pin_transitions(key_history, dev_mode)),
 
