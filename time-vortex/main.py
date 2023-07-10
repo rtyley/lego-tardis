@@ -107,7 +107,7 @@ else:
             if num_bytes > 0:
                 input_data: str = console.read(num_bytes).decode("utf-8")
                 for line in input_data.splitlines():
-                    prefix = "clock_check:"
+                    prefix = "clock_report:"
                     suffix = "Z"
                     starts_with_prefix = line.startswith(prefix)
                     ends_with_suffix = line.endswith(suffix)
