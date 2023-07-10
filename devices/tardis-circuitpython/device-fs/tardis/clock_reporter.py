@@ -78,6 +78,7 @@ class ClockReporter:
                 samples_left_for_range -= 1
                 leg_ticks, leg_time = await self.sleep_to_tick_ms_target(leg_target_ticks)
                 if leg_time != start_time:  # transition!
+                    old_confirmed_range_was_broad = confirmed_range.size_tick_ms > desired_range_size_ticks_ms
                     confirmed_range = ClockSecondTransition(
                         prior_ticks % 1000,
                         min(ticks_diff(leg_ticks, prior_ticks), 1000)
@@ -87,7 +88,7 @@ class ClockReporter:
                     samples_left_for_range = 0  # next time we run, we want to be slicing up the new range
 
                     if confirmed_range.size_tick_ms <= desired_range_size_ticks_ms:  # we're accurate!
-                        if ticks_diff(leg_ticks, last_clock_report_ticks_ms) > desired_report_period_ticks_ms:
+                        if old_confirmed_range_was_broad or ticks_diff(leg_ticks, last_clock_report_ticks_ms) > desired_report_period_ticks_ms:
                             t = leg_time
                             timestamp = ClockReporter.timestamp_format % (
                                 t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
