@@ -37,7 +37,7 @@ class ClockReporter:
         target_range_end_ticks = ticks_add(target_range_start_ticks, confirmed_range.size_tick_ms)
         return target_range_start_ticks, target_range_end_ticks
 
-    def sleep_to_tick_ms_target(self, tick_ms_target: int) -> (int, time.struct_time):
+    async def sleep_to_tick_ms_target(self, tick_ms_target: int) -> (int, time.struct_time):
         def state() -> (int, int):
             ticks = ticks_ms()
             return ticks, ticks_diff(tick_ms_target, ticks)
@@ -45,11 +45,12 @@ class ClockReporter:
         current_ticks, ticks_to_sleep = state()
         while ticks_to_sleep > 0:
             adjusted_ticks_to_sleep = ticks_to_sleep - 1  # try to avoid overshoot
-            time.sleep(adjusted_ticks_to_sleep / 1000)
+            # time.sleep(adjusted_ticks_to_sleep / 1000)
+            await asyncio.sleep(adjusted_ticks_to_sleep / 1000)
             current_ticks, ticks_to_sleep = state()
         return current_ticks, self.get_time()
 
-    def start(self):
+    async def start(self):
         confirmed_range = ClockSecondTransition(0, 1000)
         max_samples_per_second = 5
         last_clock_report_ticks_ms = 0
@@ -60,11 +61,11 @@ class ClockReporter:
         while True:
             target_start_ticks, target_end_ticks = ClockReporter.nextTargetIntervalGiven(ticks_ms(), confirmed_range)
 
-            start_ticks, start_time = self.sleep_to_tick_ms_target(target_start_ticks)
+            start_ticks, start_time = await self.sleep_to_tick_ms_target(target_start_ticks)
 
             samples_left_for_range =\
                 max(min(ceil(confirmed_range.size_tick_ms / desired_range_size_ticks_ms), max_samples_per_second), 1)
-            # print(f'\nstart_ticks={start_ticks}')
+            print(f'\nstart_ticks={start_ticks}')
             prior_ticks = start_ticks
 
             # start loop here?
@@ -75,7 +76,7 @@ class ClockReporter:
                 # print(f'samples_left_for_range={samples_left_for_range} confirmed_range_size_tick_ms={confirmed_range.size_tick_ms} ticks_until_end_of_confirmed_range={ticks_until_end_of_confirmed_range} leg_target_ticks={leg_target_ticks}')
 
                 samples_left_for_range -= 1
-                leg_ticks, leg_time = self.sleep_to_tick_ms_target(leg_target_ticks)
+                leg_ticks, leg_time = await self.sleep_to_tick_ms_target(leg_target_ticks)
                 if leg_time != start_time:  # transition!
                     confirmed_range = ClockSecondTransition(
                         prior_ticks % 1000,
@@ -94,7 +95,7 @@ class ClockReporter:
                             last_clock_report_ticks_ms = leg_ticks
                         next_report_desired_ticks_ms = ticks_add(prior_ticks,
                                                                  desired_report_period_ticks_ms)
-                        self.sleep_to_tick_ms_target(next_report_desired_ticks_ms)
+                        await self.sleep_to_tick_ms_target(next_report_desired_ticks_ms)
                 else:  # no transition!
                     ticks_to_range_end = ticks_diff(target_end_ticks, leg_ticks)
                     # print(f'ticks_to_range_end={ticks_to_range_end}')
