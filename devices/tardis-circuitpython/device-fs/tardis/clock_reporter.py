@@ -21,6 +21,24 @@ class ClockSecondTransition:
     def summary(self) -> str:
         return f'[{self.start_tick_ms} - {self.end_tick_ms}](size: {self.size_tick_ms})'
 
+class Clock(object):
+    timestamp_format = "%04d-%02d-%02dT%02d:%02d:%02dZ"
+
+    def __init__(self, name: int, get_time_repr):
+        self.name = name
+        self.get_time_repr = get_time_repr
+        self.ymd_hms_tuple_for_repr = ymd_hms_tuple_for_repr
+
+    def ymd_hms_tuple_for_repr(self, t):
+        raise NotImplementedError("Please Implement this method")
+
+    @staticmethod
+    def timestamp_for(ymd_hms_tuple: (int,int,int,int,int,int)):
+        return Clock.timestamp_format % ymd_hms_tuple
+
+class CircuitpythonClock(Clock):
+    def ymd_hms_tuple_for_repr(self, t):
+        return t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec
 
 class ClockReporter:
     timestamp_format = "%04d-%02d-%02dT%02d:%02d:%02dZ"
@@ -36,6 +54,12 @@ class ClockReporter:
         target_range_start_ticks = ticks_add(current_ticks, ticks_to_range_start)
         target_range_end_ticks = ticks_add(target_range_start_ticks, confirmed_range.size_tick_ms)
         return target_range_start_ticks, target_range_end_ticks
+
+    @staticmethod
+    def leg_target_start_ticks(samples_left_for_range, target_end_ticks):
+        current_ticks = ticks_ms()
+        ticks_until_end_of_confirmed_range = ticks_diff(target_end_ticks, current_ticks)
+        return ticks_add(current_ticks, round(ticks_until_end_of_confirmed_range / samples_left_for_range))
 
     async def sleep_to_tick_ms_target(self, tick_ms_target: int) -> (int, time.struct_time):
         def state() -> (int, int):
@@ -70,22 +94,19 @@ class ClockReporter:
 
             # start loop here?
             while samples_left_for_range > 0:  # we are going to scan the 'confirmed range' for this second
-                boo = ticks_ms()
-                ticks_until_end_of_confirmed_range = ticks_diff(target_end_ticks, boo)
-                leg_target_ticks = ticks_add(boo, round(ticks_until_end_of_confirmed_range / samples_left_for_range))
+                leg_target_ticks = ClockReporter.leg_target_start_ticks(samples_left_for_range, target_end_ticks)
                 # print(f'samples_left_for_range={samples_left_for_range} confirmed_range_size_tick_ms={confirmed_range.size_tick_ms} ticks_until_end_of_confirmed_range={ticks_until_end_of_confirmed_range} leg_target_ticks={leg_target_ticks}')
 
                 samples_left_for_range -= 1
                 leg_ticks, leg_time = await self.sleep_to_tick_ms_target(leg_target_ticks)
                 if leg_time != start_time:  # transition!
+                    samples_left_for_range = 0  # next time we run, we want to be slicing up a range on a new second
                     old_confirmed_range_was_broad = confirmed_range.size_tick_ms > desired_range_size_ticks_ms
                     confirmed_range = ClockSecondTransition(
                         prior_ticks % 1000,
                         min(ticks_diff(leg_ticks, prior_ticks), 1000)
                     )
                     # print(f'Transition on {confirmed_range.summary()}!')
-
-                    samples_left_for_range = 0  # next time we run, we want to be slicing up the new range
 
                     if confirmed_range.size_tick_ms <= desired_range_size_ticks_ms:  # we're accurate!
                         if old_confirmed_range_was_broad or ticks_diff(leg_ticks, last_clock_report_ticks_ms) > desired_report_period_ticks_ms:
