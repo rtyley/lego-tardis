@@ -101,33 +101,8 @@ def set_rp2040_rtc_from_battery_rtc():
     print(f'rp2040_rtc.datetime: {rp2040_rtc.datetime}')
 
 async def watch_clock():
-    last_battery_rtc = batteryRTC.datetime
-    last_rp2040_rtc = rp2040_rtc.datetime
     print("Waiting for time signal....")
     while True:
-        # loop should check ticks - if more than 1ms since last tick, don't bother doing a clock check- we want the transition!
-        now_rp2040_rtc = rp2040_rtc.datetime
-        now_battery_rtc = batteryRTC.datetime
-        # if now_rp2040_rtc.tm_sec % 5 == 0 and now_rp2040_rtc != last_rp2040_rtc:
-        #     last_rp2040_rtc = clock_check(False)
-        # if now_battery_rtc.tm_sec % 5 == 0 and now_battery_rtc != last_battery_rtc:
-        #     last_battery_rtc = clock_check(True)
-
-        now_ticks = supervisor.ticks_ms()
-        # if now_rtc.tm_sec != last_rtc.tm_sec:
-        #     last_rtc = now_rtc
-        #     ticks_offset = now_ticks % 1000
-        #     # print(ticks_offset)
-        #     if now_rtc.tm_sec % 10 == 0:
-        #         clock_check(True)
-        #         clock_check(False)
-        #         print('RTC :', end='');
-        #         print(now_rtc)
-        #         if ticks_offset > 0:
-        #             while (supervisor.ticks_ms() + 4) % 1000 >= ticks_offset:
-        #                 await asyncio.sleep(0.0001)
-        #             batteryRTC.datetime = now_rtc
-
         received_time_data_from_usb = readDeadlineAndTimeToDeadlineFromUSB()
         if received_time_data_from_usb:
             deadline_fields, deadline_ticks = received_time_data_from_usb
@@ -168,5 +143,4 @@ def readDeadlineAndTimeToDeadlineFromUSB():
             timeToDeadLine = buffFields[-1]
             print("timeToDeadLine:", end='');
             print(timeToDeadLine)
-            set_all_windows(timeToDeadLine // 4)
             return deadLineFields, adafruit_ticks.ticks_add(ticks_ms_for_read_instant, timeToDeadLine)

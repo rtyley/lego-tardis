@@ -8,6 +8,7 @@ import textwrap
 import time
 from datetime import datetime, timezone
 from datetime import timedelta
+from random import randrange
 from time import gmtime
 
 import serial
@@ -99,9 +100,12 @@ else:
     picoSerialPort = picoPorts[0].device
 
     with serial.Serial(picoSerialPort) as console:
-        # send_timecube(console)
 
+        send_timecube(console)
         while True:
+            # if randrange(800) == 0:
+            #     send_timecube(console)
+
             now = datetime.now(timezone.utc)
             num_bytes = console.inWaiting()
             if num_bytes > 0:
