@@ -115,7 +115,7 @@ class ClockReporter:
                                 ticks_diff(leg_ticks, last_clock_report_ticks_ms) > desired_report_period_ticks_ms:
                             print(f'clock_report:{self.clock.name}={self.clock.timestamp_for_repr(leg_time)}')
                             if old_confirmed_range_was_broad:
-                                print(f'Converged on new range: {confirmed_range.summary()}')
+                                print(f'{self.clock.name} converged on new range: {confirmed_range.summary()}')
                             last_clock_report_ticks_ms = leg_ticks
 
                         next_report_desired_ticks_ms = ticks_add(prior_ticks,
@@ -126,17 +126,18 @@ class ClockReporter:
                     # print(f'ticks_to_range_end={ticks_to_range_end}')
                     if ticks_to_range_end <= 0:  # we've checked to the end of the confirmed range! It must be wrong!
                         ticks_checked = ticks_diff(leg_ticks, start_ticks)
-                        print(f'Range {confirmed_range.summary()} was wrong! ticks_checked={ticks_checked}')
+                        print(f'{self.clock.name} range {confirmed_range.summary()} was wrong! ticks_checked={ticks_checked}')
+                        padding = 4
                         confirmed_range = ClockSecondTransition(
-                            leg_ticks % 1000,  # we know that the transition must come after...
-                            max(1000 - ticks_checked, 1)
+                            (leg_ticks - padding + 1000) % 1000,  # we know that the transition must come after...
+                            min(max(1000 - ticks_checked + (padding * 2), 1), 1000)
                         )
                         samples_left_for_range = 0
                     else:
                         prior_ticks = leg_ticks
 
 
-internal_clock = CircuitpythonClock("ds3231", lambda: batteryRTC.datetime)
-external_clock = CircuitpythonClock("rp2040", lambda: rp2040_rtc.datetime)
+external_clock = CircuitpythonClock("ds3231", lambda: batteryRTC.datetime)
+internal_clock = CircuitpythonClock("rp2040", lambda: rp2040_rtc.datetime)
 
-all_clocks = [internal_clock, external_clock]
+all_clocks = [external_clock] #  [internal_clock, external_clock]

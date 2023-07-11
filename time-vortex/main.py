@@ -118,9 +118,9 @@ else:
                     if starts_with_prefix and ends_with_suffix:
                         name, timestamp = line.removeprefix(prefix).removesuffix(suffix).split("=")
                         dt = datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
-                        print(f'{name}: dt={dt} now={now}')
                         diff = (dt - now).total_seconds()
-                        print(f'{name}:{"-" if diff < 0 else "+"}{abs(diff):.3f}s {"✅" if abs(diff) < 0.5 else "❌"}')
+                        clock_diff = f'{"-" if diff < 0 else "+"}{abs(diff):.3f}s {"✅" if abs(diff) < 0.5 else "❌"}'
+                        print(f"{now.time().isoformat(timespec='milliseconds')} : {name} @ {clock_diff}")
                     else:
                       print(textwrap.indent(line, '> '))
             time.sleep(0.01)
