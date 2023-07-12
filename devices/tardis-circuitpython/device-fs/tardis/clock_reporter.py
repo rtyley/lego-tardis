@@ -82,7 +82,7 @@ class ClockReporter:
         confirmed_range = ClockSecondTransition(0, 1000)
         max_samples_per_second = 5
         last_clock_report_ticks_ms = 0
-        desired_range_size_ticks_ms = 10
+        desired_range_size_ticks_ms = 5
         desired_report_period_ticks_seconds: int = 10
         desired_report_period_ticks_ms = desired_report_period_ticks_seconds * 1000  # shd be a whole number of seconds
         while True:
@@ -90,8 +90,8 @@ class ClockReporter:
 
             start_ticks, start_time = await self.sleep_to_tick_ms_target(target_start_ticks)
 
-            samples_left_for_range = \
-                max(min(ceil(confirmed_range.size_tick_ms / desired_range_size_ticks_ms), max_samples_per_second), 1)
+            samples_left_for_range = 1 if confirmed_range.size_tick_ms == desired_range_size_ticks_ms else \
+                max(min(ceil(2 * confirmed_range.size_tick_ms / desired_range_size_ticks_ms), max_samples_per_second), 1)
             # print(f'\nstart_ticks={start_ticks}')
             prior_ticks = start_ticks
 
@@ -104,13 +104,20 @@ class ClockReporter:
                 if leg_time != start_time:  # transition!
                     samples_left_for_range = 0  # next time we run, we want to be slicing up a range on a new second
                     old_confirmed_range_was_broad = confirmed_range.size_tick_ms > desired_range_size_ticks_ms
-                    confirmed_range = ClockSecondTransition(
-                        prior_ticks % 1000,
-                        min(ticks_diff(leg_ticks, prior_ticks), 1000)
-                    )
-                    # print(f'Transition on {confirmed_range.summary()}!')
+                    observed_range_size = ticks_diff(leg_ticks, prior_ticks)
+                    if old_confirmed_range_was_broad:  # don't allow confirmed range to drift unnecessarily
+                        centre_of_range = ticks_add(prior_ticks, observed_range_size//2)
+                        # print(f'observed_range_size={observed_range_size} centre_of_range={centre_of_range}')
+                        required_range_size = min(max(desired_range_size_ticks_ms, observed_range_size), 1000)
+                        required_range_start = ticks_add(centre_of_range, -(required_range_size // 2))
+                        # print(f'required_range_size={required_range_size} required_range_start={required_range_start}')
 
-                    if confirmed_range.size_tick_ms <= desired_range_size_ticks_ms:  # we're accurate!
+                        confirmed_range = ClockSecondTransition(
+                            required_range_start % 1000,
+                            required_range_size
+                        )
+
+                    if observed_range_size <= desired_range_size_ticks_ms:  # we're accurate!
                         if old_confirmed_range_was_broad or \
                                 ticks_diff(leg_ticks, last_clock_report_ticks_ms) > desired_report_period_ticks_ms:
                             print(f'clock_report:{self.clock.name}={self.clock.timestamp_for_repr(leg_time)}')
