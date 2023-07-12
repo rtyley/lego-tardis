@@ -1,15 +1,22 @@
-import asyncio
-
-from adafruit_ticks import *
-import time
-import rtc
-import board
-import adafruit_ds3231  # battery-backed RTC
 from math import ceil
+from python_variant_shims import ticks_ms, ticks_add, ticks_diff, sleep
 
-rp2040_rtc = rtc.RTC()
+class RealTimeClock(object):
+    timestamp_format = "%04d-%02d-%02dT%02d:%02d:%02dZ"
 
-batteryRTC = adafruit_ds3231.DS3231(board.I2C())
+    def __init__(self, name: str, get_time_repr):
+        self.name = name
+        self.get_time_repr = get_time_repr
+
+    def ymd_hms_tuple_for_repr(self, t):
+        raise NotImplementedError("Please Implement this method")
+
+    def timestamp_for_repr(self, repr):
+        return RealTimeClock.timestamp_for(self.ymd_hms_tuple_for_repr(repr))
+
+    @staticmethod
+    def timestamp_for(ymd_hms_tuple: (int, int, int, int, int, int)):
+        return RealTimeClock.timestamp_format % ymd_hms_tuple
 
 
 class ClockSecondTransition:
@@ -22,33 +29,9 @@ class ClockSecondTransition:
         return f'[{self.start_tick_ms} - {self.end_tick_ms}](size: {self.size_tick_ms})'
 
 
-class Clock(object):
-    timestamp_format = "%04d-%02d-%02dT%02d:%02d:%02dZ"
-
-    def __init__(self, name: str, get_time_repr):
-        self.name = name
-        self.get_time_repr = get_time_repr
-
-    def ymd_hms_tuple_for_repr(self, t):
-        raise NotImplementedError("Please Implement this method")
-
-    def timestamp_for_repr(self, repr):
-        return Clock.timestamp_for(self.ymd_hms_tuple_for_repr(repr))
-
-    @staticmethod
-    def timestamp_for(ymd_hms_tuple: (int, int, int, int, int, int)):
-        return Clock.timestamp_format % ymd_hms_tuple
-
-
-class CircuitpythonClock(Clock):
-    def ymd_hms_tuple_for_repr(self, t):
-        return t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec
-
-
 class ClockReporter:
-    timestamp_format = "%04d-%02d-%02dT%02d:%02d:%02dZ"
 
-    def __init__(self, clock: Clock):
+    def __init__(self, clock: RealTimeClock):
         self.clock = clock
 
     @staticmethod
@@ -65,7 +48,7 @@ class ClockReporter:
         ticks_until_end_of_confirmed_range = ticks_diff(target_end_ticks, current_ticks)
         return ticks_add(current_ticks, round(ticks_until_end_of_confirmed_range / samples_left_for_range))
 
-    async def sleep_to_tick_ms_target(self, tick_ms_target: int) -> (int, time.struct_time):
+    async def sleep_to_tick_ms_target(self, tick_ms_target: int):
         def state() -> (int, int):
             ticks = ticks_ms()
             return ticks, ticks_diff(tick_ms_target, ticks)
@@ -73,8 +56,7 @@ class ClockReporter:
         current_ticks, ticks_to_sleep = state()
         while ticks_to_sleep > 0:
             adjusted_ticks_to_sleep = ticks_to_sleep - 1  # try to avoid overshoot
-            # time.sleep(adjusted_ticks_to_sleep / 1000)
-            await asyncio.sleep(adjusted_ticks_to_sleep / 1000)
+            await sleep(adjusted_ticks_to_sleep / 1000)
             current_ticks, ticks_to_sleep = state()
         return current_ticks, self.clock.get_time_repr()
 
@@ -91,7 +73,8 @@ class ClockReporter:
             start_ticks, start_time = await self.sleep_to_tick_ms_target(target_start_ticks)
 
             samples_left_for_range = 1 if confirmed_range.size_tick_ms == desired_range_size_ticks_ms else \
-                max(min(ceil(2 * confirmed_range.size_tick_ms / desired_range_size_ticks_ms), max_samples_per_second), 1)
+                max(min(ceil(2 * confirmed_range.size_tick_ms / desired_range_size_ticks_ms), max_samples_per_second),
+                    1)
             # print(f'\nstart_ticks={start_ticks}')
             prior_ticks = start_ticks
 
@@ -106,7 +89,7 @@ class ClockReporter:
                     old_confirmed_range_was_broad = confirmed_range.size_tick_ms > desired_range_size_ticks_ms
                     observed_range_size = ticks_diff(leg_ticks, prior_ticks)
                     if old_confirmed_range_was_broad:  # don't allow confirmed range to drift unnecessarily
-                        centre_of_range = ticks_add(prior_ticks, observed_range_size//2)
+                        centre_of_range = ticks_add(prior_ticks, observed_range_size // 2)
                         # print(f'observed_range_size={observed_range_size} centre_of_range={centre_of_range}')
                         required_range_size = min(max(desired_range_size_ticks_ms, observed_range_size), 1000)
                         required_range_start = ticks_add(centre_of_range, -(required_range_size // 2))
@@ -133,7 +116,8 @@ class ClockReporter:
                     # print(f'ticks_to_range_end={ticks_to_range_end}')
                     if ticks_to_range_end <= 0:  # we've checked to the end of the confirmed range! It must be wrong!
                         ticks_checked = ticks_diff(leg_ticks, start_ticks)
-                        print(f'{self.clock.name} range {confirmed_range.summary()} was wrong! ticks_checked={ticks_checked}')
+                        print(
+                            f'{self.clock.name} range {confirmed_range.summary()} was wrong! ticks_checked={ticks_checked}')
                         padding = 4
                         confirmed_range = ClockSecondTransition(
                             (leg_ticks - padding + 1000) % 1000,  # we know that the transition must come after...
@@ -142,9 +126,3 @@ class ClockReporter:
                         samples_left_for_range = 0
                     else:
                         prior_ticks = leg_ticks
-
-
-external_clock = CircuitpythonClock("ds3231", lambda: batteryRTC.datetime)
-internal_clock = CircuitpythonClock("rp2040", lambda: rp2040_rtc.datetime)
-
-all_clocks = [external_clock] #  [internal_clock, external_clock]
