@@ -5,21 +5,50 @@ from time import ticks_diff, ticks_add, ticks_ms, sleep_us, gmtime
 from select import select
 from sys import stdin
 from machine import SoftI2C
+
+from clocks.mp_real_time_clocks import all_clocks
+from clocks.synchro import ClockReporter
 from secrets import treasurePassphrases
 
 from machine import Pin, Timer
 import time
 from ds3231_gen import *
+import uasyncio as asyncio
+
+
+print("The family together")
+
+
+async def bar(x):
+    count = 0
+    while True:
+        count += 1
+        print('Instance: {} count: {}'.format(x, count))
+        await asyncio.sleep(1)  # Pause 1s
+
+
+async def main():
+    for c in all_clocks:
+        asyncio.create_task(ClockReporter(c).start())
+    while True:
+        await asyncio.sleep(10)
+
+
+asyncio.run(main())
+
+
+print("Loom stick!")
 
 
 def singleton(class_):
     instances = {}
+
     def getinstance(*args, **kwargs):
         if class_ not in instances:
             instances[class_] = class_(*args, **kwargs)
         return instances[class_]
-    return getinstance
 
+    return getinstance
 
 
 class Scheduler:
@@ -189,6 +218,7 @@ class Display:
             "Sat": self.Icon(18, 0, width=2),
             "Sun": self.Icon(21, 0, width=2),
         }
+
     day_of_week = {
         0: "Sun",
         1: "Mon",
@@ -196,66 +226,67 @@ class Display:
         3: "Wed",
         4: "Thur",
         5: "Fri",
-        6: "Sat"      
-        }
+        6: "Sat"
+    }
+
     def show_day(self, int):
         self.clear()
         self.show_icon(self.day_of_week[int])
-        
+
     # Derived from c code created by yufu on 2021/1/23.
     # Modulus method: negative code, reverse, line by line, 4X7 font
     def initialise_fonts(self):
         self.ziku = {
-            "all": self.Character(width=3, rows=[0x05,0x05,0x03,0x03,0x03,0x03,0x03]),
-            "0": self.Character(width=4, rows=[0x06,0x09,0x09,0x09,0x09,0x09,0x06]),
-            "1": self.Character(width=4, rows=[0x04,0x06,0x04,0x04,0x04,0x04,0x0E]),
-            "2": self.Character(width=4, rows=[0x06,0x09,0x08,0x04,0x02,0x01,0x0F]),
-            "3": self.Character(width=4, rows=[0x06,0x09,0x08,0x06,0x08,0x09,0x06]),
-            "4": self.Character(width=4, rows=[0x08,0x0C,0x0A,0x09,0x0F,0x08,0x08]),
-            "5": self.Character(width=4, rows=[0x0F,0x01,0x07,0x08,0x08,0x09,0x06]),
-            "6": self.Character(width=4, rows=[0x04,0x02,0x01,0x07,0x09,0x09,0x06]),
-            "7": self.Character(width=4, rows=[0x0F,0x09,0x04,0x04,0x04,0x04,0x04]),
-            "8": self.Character(width=4, rows=[0x06,0x09,0x09,0x06,0x09,0x09,0x06]),
-            "9": self.Character(width=4, rows=[0x06,0x09,0x09,0x0E,0x08,0x04,0x02]),
-            "A": self.Character(width=4, rows=[0x06,0x09,0x09,0x0F,0x09,0x09,0x09]),
-            "B": self.Character(width=4, rows=[0x07,0x09,0x09,0x07,0x09,0x09,0x07]),
-            "C": self.Character(width=4, rows=[0x06,0x09,0x01,0x01,0x01,0x09,0x06]),
-            "D": self.Character(width=4, rows=[0x07,0x09,0x09,0x09,0x09,0x09,0x07]),
-            "E": self.Character(width=4, rows=[0x0F,0x01,0x01,0x0F,0x01,0x01,0x0F]),
-            "F": self.Character(width=4, rows=[0x0F,0x01,0x01,0x0F,0x01,0x01,0x01]),
-            "G": self.Character(width=4, rows=[0x06,0x09,0x01,0x0D,0x09,0x09,0x06]),
-            "H": self.Character(width=4, rows=[0x09,0x09,0x09,0x0F,0x09,0x09,0x09]),
-            "I": self.Character(width=3, rows=[0x07,0x02,0x02,0x02,0x02,0x02,0x07]),
-            "J": self.Character(width=4, rows=[0x0F,0x08,0x08,0x08,0x09,0x09,0x06]),
-            "K": self.Character(width=4, rows=[0x09,0x05,0x03,0x01,0x03,0x05,0x09]),
-            "L": self.Character(width=4, rows=[0x01,0x01,0x01,0x01,0x01,0x01,0x0F]),
-            "M": self.Character(width=5, rows=[0x11,0x1B,0x15,0x11,0x11,0x11,0x11]),   # 5×7
-            "N": self.Character(width=4, rows=[0x09,0x09,0x0B,0x0D,0x09,0x09,0x09]),
-            "O": self.Character(width=4, rows=[0x06,0x09,0x09,0x09,0x09,0x09,0x06]),
-            "P": self.Character(width=4, rows=[0x07,0x09,0x09,0x07,0x01,0x01,0x01]),
-            "Q": self.Character(width=5, rows=[0x0E,0x11,0x11,0x11,0x15,0x19,0x0E]),#Q
-            "R": self.Character(width=4, rows=[0x07,0x09,0x09,0x07,0x03,0x05,0x09]), #R
-            "S": self.Character(width=4, rows=[0x06,0x09,0x02,0x04,0x08,0x09,0x06]),#S
-            "T": self.Character(width=5, rows=[0x1F,0x04,0x04,0x04,0x04,0x04,0x04]),        # 5×7
-            "U": self.Character(width=4, rows=[0x09,0x09,0x09,0x09,0x09,0x09,0x06]),
-            "V": self.Character(width=5, rows=[0x11,0x11,0x11,0x11,0x11,0x0A,0x04]),        # 5×7
-            "W": self.Character(width=5, rows=[0x11,0x11,0x11,0x15,0x15,0x1B,0x11]),        # 5×7
-            "X": self.Character(width=5, rows=[0x11,0x11,0x0A,0x04,0x0A,0x11,0x11]),        # 5*7
-            "Y": self.Character(width=5, rows=[0x11,0x11,0x0A,0x04,0x04,0x04,0x04]),        # 5*7
-            "Z": self.Character(width=4, rows=[0x0F,0x08,0x04,0x02,0x01,0x0F,0x00]),             # 4×7
+            "all": self.Character(width=3, rows=[0x05, 0x05, 0x03, 0x03, 0x03, 0x03, 0x03]),
+            "0": self.Character(width=4, rows=[0x06, 0x09, 0x09, 0x09, 0x09, 0x09, 0x06]),
+            "1": self.Character(width=4, rows=[0x04, 0x06, 0x04, 0x04, 0x04, 0x04, 0x0E]),
+            "2": self.Character(width=4, rows=[0x06, 0x09, 0x08, 0x04, 0x02, 0x01, 0x0F]),
+            "3": self.Character(width=4, rows=[0x06, 0x09, 0x08, 0x06, 0x08, 0x09, 0x06]),
+            "4": self.Character(width=4, rows=[0x08, 0x0C, 0x0A, 0x09, 0x0F, 0x08, 0x08]),
+            "5": self.Character(width=4, rows=[0x0F, 0x01, 0x07, 0x08, 0x08, 0x09, 0x06]),
+            "6": self.Character(width=4, rows=[0x04, 0x02, 0x01, 0x07, 0x09, 0x09, 0x06]),
+            "7": self.Character(width=4, rows=[0x0F, 0x09, 0x04, 0x04, 0x04, 0x04, 0x04]),
+            "8": self.Character(width=4, rows=[0x06, 0x09, 0x09, 0x06, 0x09, 0x09, 0x06]),
+            "9": self.Character(width=4, rows=[0x06, 0x09, 0x09, 0x0E, 0x08, 0x04, 0x02]),
+            "A": self.Character(width=4, rows=[0x06, 0x09, 0x09, 0x0F, 0x09, 0x09, 0x09]),
+            "B": self.Character(width=4, rows=[0x07, 0x09, 0x09, 0x07, 0x09, 0x09, 0x07]),
+            "C": self.Character(width=4, rows=[0x06, 0x09, 0x01, 0x01, 0x01, 0x09, 0x06]),
+            "D": self.Character(width=4, rows=[0x07, 0x09, 0x09, 0x09, 0x09, 0x09, 0x07]),
+            "E": self.Character(width=4, rows=[0x0F, 0x01, 0x01, 0x0F, 0x01, 0x01, 0x0F]),
+            "F": self.Character(width=4, rows=[0x0F, 0x01, 0x01, 0x0F, 0x01, 0x01, 0x01]),
+            "G": self.Character(width=4, rows=[0x06, 0x09, 0x01, 0x0D, 0x09, 0x09, 0x06]),
+            "H": self.Character(width=4, rows=[0x09, 0x09, 0x09, 0x0F, 0x09, 0x09, 0x09]),
+            "I": self.Character(width=3, rows=[0x07, 0x02, 0x02, 0x02, 0x02, 0x02, 0x07]),
+            "J": self.Character(width=4, rows=[0x0F, 0x08, 0x08, 0x08, 0x09, 0x09, 0x06]),
+            "K": self.Character(width=4, rows=[0x09, 0x05, 0x03, 0x01, 0x03, 0x05, 0x09]),
+            "L": self.Character(width=4, rows=[0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x0F]),
+            "M": self.Character(width=5, rows=[0x11, 0x1B, 0x15, 0x11, 0x11, 0x11, 0x11]),  # 5×7
+            "N": self.Character(width=4, rows=[0x09, 0x09, 0x0B, 0x0D, 0x09, 0x09, 0x09]),
+            "O": self.Character(width=4, rows=[0x06, 0x09, 0x09, 0x09, 0x09, 0x09, 0x06]),
+            "P": self.Character(width=4, rows=[0x07, 0x09, 0x09, 0x07, 0x01, 0x01, 0x01]),
+            "Q": self.Character(width=5, rows=[0x0E, 0x11, 0x11, 0x11, 0x15, 0x19, 0x0E]),  # Q
+            "R": self.Character(width=4, rows=[0x07, 0x09, 0x09, 0x07, 0x03, 0x05, 0x09]),  # R
+            "S": self.Character(width=4, rows=[0x06, 0x09, 0x02, 0x04, 0x08, 0x09, 0x06]),  # S
+            "T": self.Character(width=5, rows=[0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04]),  # 5×7
+            "U": self.Character(width=4, rows=[0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x06]),
+            "V": self.Character(width=5, rows=[0x11, 0x11, 0x11, 0x11, 0x11, 0x0A, 0x04]),  # 5×7
+            "W": self.Character(width=5, rows=[0x11, 0x11, 0x11, 0x15, 0x15, 0x1B, 0x11]),  # 5×7
+            "X": self.Character(width=5, rows=[0x11, 0x11, 0x0A, 0x04, 0x0A, 0x11, 0x11]),  # 5*7
+            "Y": self.Character(width=5, rows=[0x11, 0x11, 0x0A, 0x04, 0x04, 0x04, 0x04]),  # 5*7
+            "Z": self.Character(width=4, rows=[0x0F, 0x08, 0x04, 0x02, 0x01, 0x0F, 0x00]),  # 4×7
 
-            ":": self.Character(width=2, rows=[0x00,0x03,0x03,0x00,0x03,0x03,0x00]),        #2×7
-            " :": self.Character(width=2, rows=[0x00,0x00,0x00,0x00,0x00,0x00,0x00]),       # colon width space
-            "°C": self.Character(width=4, rows=[0x01,0x0C,0x12,0x02,0x02,0x12,0x0C]),       # celcuis 5×7
-            "°F": self.Character(width=4, rows=[0x01,0x1E,0x02,0x1E,0x02,0x02,0x02]),       # farenheit
-            " ": self.Character(width=4, rows=[0x00,0x00,0x00,0x00,0x00,0x00,0x00]),        # space
+            ":": self.Character(width=2, rows=[0x00, 0x03, 0x03, 0x00, 0x03, 0x03, 0x00]),  # 2×7
+            " :": self.Character(width=2, rows=[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),  # colon width space
+            "°C": self.Character(width=4, rows=[0x01, 0x0C, 0x12, 0x02, 0x02, 0x12, 0x0C]),  # celcuis 5×7
+            "°F": self.Character(width=4, rows=[0x01, 0x1E, 0x02, 0x1E, 0x02, 0x02, 0x02]),  # farenheit
+            " ": self.Character(width=4, rows=[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),  # space
 
-            ".": self.Character(width=1, rows=[0x00,0x00,0x00,0x00,0x00,0x00,0x01]),        # 1×7
-            "-": self.Character(width=2, rows=[0x00,0x00,0x00,0x03,0x00,0x00,0x00]),        # 2×7
+            ".": self.Character(width=1, rows=[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]),  # 1×7
+            "-": self.Character(width=2, rows=[0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00]),  # 2×7
 
-            "/": self.Character(width=2, rows=[0x02,0x02,0x02,0x01,0x01,0x01,0x01,0x01]),   # 3×7
-            "°C2": self.Character(width=4, rows=[0x00,0x01,0x0C,0x12,0x02,0x02,0x12,0x0C]), # 5×7
-            "°F2": self.Character(width=4, rows=[0x00,0x01,0x1E,0x02,0x1E,0x02,0x02,0x02]),
+            "/": self.Character(width=2, rows=[0x02, 0x02, 0x02, 0x01, 0x01, 0x01, 0x01, 0x01]),  # 3×7
+            "°C2": self.Character(width=4, rows=[0x00, 0x01, 0x0C, 0x12, 0x02, 0x02, 0x12, 0x0C]),  # 5×7
+            "°F2": self.Character(width=4, rows=[0x00, 0x01, 0x1E, 0x02, 0x1E, 0x02, 0x02, 0x02]),
 
         }
         self.digital_tube = {
@@ -308,10 +339,12 @@ display.show_text("GOOD")
 
 def singleton(class_):
     instances = {}
+
     def getinstance(*args, **kwargs):
         if class_ not in instances:
             instances[class_] = class_(*args, **kwargs)
         return instances[class_]
+
     return getinstance
 
 
@@ -322,15 +355,17 @@ ds3231_rtc = DS3231(rtc_i2c)
 
 print(rp2040_rtc.datetime())
 print(ds3231_rtc.get_time())
+
+
 # (2022, 3, 9,  3, 20, 52, 30, 0)
 # (1922, 3, 9, 20, 52,  7,  2, 0)
 
 def readDeadlineAndTimeToDeadlineFromUSB():
-    ch, buffer = '',''
+    ch, buffer = '', ''
     ticks_ms_for_read_instant = ticks_ms()
     while stdin in select([stdin], [], [], 0)[0]:
         ch = stdin.read(1)
-        buffer = buffer+ch
+        buffer = buffer + ch
     if buffer:
         print("Received USB data!")
         for i in range(len(buffer)):
@@ -343,17 +378,18 @@ def readDeadlineAndTimeToDeadlineFromUSB():
             deadLineFields = buffFields[:-1]
             deadLineFields.append(0)
             timeToDeadLine = buffFields[-1]
-            print("timeToDeadLine:",end='');print(timeToDeadLine)
+            print("timeToDeadLine:", end='');
+            print(timeToDeadLine)
             return deadLineFields, ticks_add(ticks_ms_for_read_instant, timeToDeadLine)
+
 
 led_onboard = Pin(25, Pin.OUT)
 
 rp2040_rtc = machine.RTC()
 lastSecondPrinted = rp2040_rtc.datetime()[6]
 
-
-
 displayed_text = None
+
 
 # def ticks_for_next_10_second_rollover(last_ds3231Time, ticks_at_transition):
 
@@ -364,41 +400,49 @@ def set_pico_rtc_from_ds3231():
     while latest_ds3231_time[5] is initial_ds3231_seconds:
         ticks_for_transition = ticks_ms() % 1000
         latest_ds3231_time = ds3231_rtc.get_time()
-    
+
     (year, month, day, hour, minute, second, wday, yday) = latest_ds3231_time
     rp2040_rtc.datetime((year, month, day, wday, hour, minute, second, 0))
-    print("set_pico_rtc_from_ds3231:",end='');print(latest_ds3231_time)
-    print("ticks_for_transition:",end='');print(ticks_for_transition)
-    print("hour:",end='');print(hour)
-    print("minute:",end='');print(minute)
-    print("second:",end='');print(second)
-    picoTime=rp2040_rtc.datetime()
-    print("secondsFromPico:",end='');print(picoTime[6])
-    
+    print("set_pico_rtc_from_ds3231:", end='');
+    print(latest_ds3231_time)
+    print("ticks_for_transition:", end='');
+    print(ticks_for_transition)
+    print("hour:", end='');
+    print(hour)
+    print("minute:", end='');
+    print(minute)
+    print("second:", end='');
+    print(second)
+    picoTime = rp2040_rtc.datetime()
+    print("secondsFromPico:", end='');
+    print(picoTime[6])
+
     initial_pico_seconds = rp2040_rtc.datetime()[6]
     latest_pico_time = rp2040_rtc.datetime()
     ticks_for_pico_transition = ticks_ms()
     while latest_pico_time[6] is initial_pico_seconds:
         ticks_for_pico_transition = ticks_ms() % 1000
         latest_pico_time = rp2040_rtc.datetime()
-    print("latest_pico_time:",end='');print(latest_pico_time)
-    print("ticks_for_pico_transition:",end='');print(ticks_for_pico_transition)
-    
+    print("latest_pico_time:", end='');
+    print(latest_pico_time)
+    print("ticks_for_pico_transition:", end='');
+    print(ticks_for_pico_transition)
+
+
 set_pico_rtc_from_ds3231()
 
 
 def secs_callback(t):
-    picoTime=rp2040_rtc.datetime()
+    picoTime = rp2040_rtc.datetime()
     picoSeconds = picoTime[6]
     picoMinutes = picoTime[5]
-    epochSecond = picoSeconds + (picoMinutes*60)
+    epochSecond = picoSeconds + (picoMinutes * 60)
     print(f'wave pico rtc = {picoMinutes}m{picoSeconds}s')
     passphrase = treasurePassphrases.passphraseFor(epochSecond // 10)
     # print(f'passphrase = {passphrase}')
     display.clear()
     if (passphrase is not None):
-      display.show_text(passphrase.words[epochSecond % 2])
-      
+        display.show_text(passphrase.words[epochSecond % 2])
 
 
 scheduler.schedule("clock-second", 1000, secs_callback)
@@ -410,31 +454,39 @@ display.show_text("BONG")
 def listenForUsbTimeSignal():
     lastSecondPrinted = None
     while True:
-        picoTime=rp2040_rtc.datetime()
+        picoTime = rp2040_rtc.datetime()
         ds3231Time = ds3231_rtc.get_time()
         secondsFromPico = picoTime[6]
         secondsFromDS3231Time = ds3231Time[5]
         if secondsFromPico != lastSecondPrinted:
-            picoTime=rp2040_rtc.datetime()
-            print('Pico   RTC :',end='');print(picoTime)
-            print('DS3231 RTC :',end='');print(ds3231Time)
-            print('Pico   seconds :',end='');print(secondsFromPico)
-            print('DS3231 seconds :',end='');print(secondsFromDS3231Time)
+            picoTime = rp2040_rtc.datetime()
+            print('Pico   RTC :', end='');
+            print(picoTime)
+            print('DS3231 RTC :', end='');
+            print(ds3231Time)
+            print('Pico   seconds :', end='');
+            print(secondsFromPico)
+            print('DS3231 seconds :', end='');
+            print(secondsFromDS3231Time)
             lastSecondPrinted = secondsFromPico
             led_onboard.toggle()
 
         receivedTimeDataFromUsb = readDeadlineAndTimeToDeadlineFromUSB()
         if receivedTimeDataFromUsb:
             deadLineFields, deadline_ticks = receivedTimeDataFromUsb
-            print("deadLineFields: ",end='');print(deadLineFields)
+            print("deadLineFields: ", end='');
+            print(deadLineFields)
             (year, month, day, hour, minute, second, wday, yday) = deadLineFields
             while ticks_diff(deadline_ticks, ticks_ms()) > 0:
                 sleep_us(1000)  # *ticks_diff(deadline, time.ticks_ms())
             ds3231_rtc.save_time(deadLineFields)
             rp2040_rtc.datetime((year, month, day, wday, hour, minute, second, 0))
-            print("Saved time from USB\t: ",end='');print(deadLineFields)
-            print("PICO RTC says\t:",end='');print(rp2040_rtc.datetime())
-            print("DS3231 now says\t:",end='');print(RTC().get_time())
-        
-listenForUsbTimeSignal()
+            print("Saved time from USB\t: ", end='');
+            print(deadLineFields)
+            print("PICO RTC says\t:", end='');
+            print(rp2040_rtc.datetime())
+            print("DS3231 now says\t:", end='');
+            print(RTC().get_time())
 
+
+listenForUsbTimeSignal()
