@@ -10,6 +10,7 @@ batteryRTC = adafruit_ds3231.DS3231(board.I2C())
 
 class CircuitPythonClock(RealTimeClock):
     def ymd_hms_tuple_for_repr(self, t):
+        # https://docs.circuitpython.org/en/latest/shared-bindings/time/index.html#time.struct_time
         return t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec
 
 

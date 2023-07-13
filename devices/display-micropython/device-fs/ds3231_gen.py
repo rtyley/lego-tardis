@@ -79,7 +79,7 @@ class DS3231:
         ss, mm, hh, wday, DD, MM, YY = [bcd2dec(x) for x in data]
         YY += 2000
         # Time from DS3231 in time.localtime() format (less yday)
-        result = YY, MM, DD, hh, mm, ss, wday - 1, 0
+        result = YY, MM, DD, wday - 1, hh, mm, ss, 0  # Altered by Roberto to match https://docs.micropython.org/en/v1.20.0/library/pyb.RTC.html?highlight=rtc#pyb.RTC.datetime
         return result
 
     # Output time or alarm data to device
