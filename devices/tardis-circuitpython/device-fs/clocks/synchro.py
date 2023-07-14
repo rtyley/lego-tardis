@@ -28,6 +28,15 @@ class ClockSecondTransition:
     def summary(self) -> str:
         return f'[{self.start_tick_ms} - {self.end_tick_ms}](size: {self.size_tick_ms})'
 
+    @staticmethod
+    def centred_around(centre_ticks: int, size_ticks):
+        required_range_size = min(size_ticks, 1000)
+        required_range_start = ticks_add(centre_ticks, -(required_range_size // 2))
+        return ClockSecondTransition(
+            required_range_start % 1000,
+            required_range_size
+        )
+
 
 class ClockReporter:
 
@@ -72,7 +81,7 @@ class ClockReporter:
 
             start_ticks, start_time = await self.sleep_to_tick_ms_target(target_start_ticks)
 
-            samples_left_for_range = 1 if confirmed_range.size_tick_ms == desired_range_size_ticks_ms else \
+            samples_left_for_range = 1 if confirmed_range.size_tick_ms <= desired_range_size_ticks_ms else \
                 max(min(ceil(2 * confirmed_range.size_tick_ms / desired_range_size_ticks_ms), max_samples_per_second),
                     1)
             # print(f'\nstart_ticks={start_ticks}')
@@ -91,13 +100,9 @@ class ClockReporter:
                     if old_confirmed_range_was_broad:  # don't allow confirmed range to drift unnecessarily
                         centre_of_range = ticks_add(prior_ticks, observed_range_size // 2)
                         # print(f'observed_range_size={observed_range_size} centre_of_range={centre_of_range}')
-                        required_range_size = min(max(desired_range_size_ticks_ms, observed_range_size), 1000)
-                        required_range_start = ticks_add(centre_of_range, -(required_range_size // 2))
-                        # print(f'required_range_size={required_range_size} required_range_start={required_range_start}')
-
-                        confirmed_range = ClockSecondTransition(
-                            required_range_start % 1000,
-                            required_range_size
+                        confirmed_range = ClockSecondTransition.centred_around(
+                            ticks_add(prior_ticks, observed_range_size // 2),
+                            max(desired_range_size_ticks_ms, observed_range_size)
                         )
 
                     if observed_range_size <= desired_range_size_ticks_ms:  # we're accurate!

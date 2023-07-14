@@ -32,13 +32,7 @@ class MicroPythonClock(RealTimeClock):
         return year, month, day, hours, minutes, seconds
 
 
-# ds3231=(2023, 7, 12, 21, 6, 10, 2,  0)
-# ds3231=(2023, 7, 12, 21, 15, 38, 2, 0)
 external_clock = MicroPythonClock("ds3231", lambda: ds3231_rtc.get_time())
-
-# rp2040=(2021, 1,  1,  4, 0, 30, 50, 0)
-# rp2040=(2021, 1,  1,  4, 0, 40, 19, 0)
-
 internal_clock = MicroPythonClock("rp2040", lambda: rp2040_rtc.datetime())
 
 all_clocks = [internal_clock, external_clock]
