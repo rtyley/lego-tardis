@@ -2,7 +2,7 @@ import rtc
 import board
 import adafruit_ds3231  # battery-backed RTC
 
-from synchro import RealTimeClock
+from clocks.synchro import RealTimeClock
 
 rp2040_rtc = rtc.RTC()
 batteryRTC = adafruit_ds3231.DS3231(board.I2C())
@@ -17,4 +17,4 @@ class CircuitPythonClock(RealTimeClock):
 external_clock = CircuitPythonClock("ds3231", lambda: batteryRTC.datetime)
 internal_clock = CircuitPythonClock("rp2040", lambda: rp2040_rtc.datetime)
 
-all_clocks = [external_clock]  # [internal_clock, external_clock]
+all_clocks = [internal_clock, external_clock]

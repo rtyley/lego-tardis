@@ -3,8 +3,8 @@ import asyncio
 from tardis import tardis_keypad, ghetto_blaster, clock  # , memory_game
 from tardis.activities.window_flip import WindowFlip
 from tardis.device_mode import DeviceMode
-from tardis.clock_reporter import all_clocks, ClockReporter
-
+from clocks.cp_real_time_clocks import all_clocks
+from clocks.synchro import ClockReporter
 
 # I2SPins().diagnostic_check()
 

@@ -10,9 +10,11 @@ from datetime import datetime, timezone
 from datetime import timedelta
 from random import randrange
 from time import gmtime
+import asyncio
 
 import serial
 from serial.tools import list_ports
+from serial.tools.list_ports_common import ListPortInfo
 
 parser = argparse.ArgumentParser(
     description='Communicate through the vortex'
@@ -42,10 +44,11 @@ args = parser.parse_args()
 # Perform
 
 
-class Device:
-    def __init__(self, name: str, port: str):
+class DeviceType:
+    def __init__(self, name: str, port: str, known_usb_device_serial_numbers: dict[str, str]):
         self.name = name
         self.port = port
+        self.known_usb_device_serial_numbers = known_usb_device_serial_numbers
 
 
 # VID:PID for different devices:
@@ -53,14 +56,26 @@ class Device:
 # Pimoroni Pico LiPo (16MB) : 2E8A:1003
 # Keybow 2040               : 16D0:08C6
 
-TARDIS_DEVICE = Device("TARDIS", "16D0:08C6")
-PASSPHRASE_DISPLAY_DEVICE = Device("Display", "2E8A:0005")
+TARDIS_DEVICE = DeviceType(
+    "TARDIS",
+    "16D0:08C6",
+    {
+        'E6609103C342C02C': "PRIME"
+    }
+)
+PASSPHRASE_DISPLAY_DEVICE = DeviceType(
+    "Display", "2E8A:0005",
+    {
+        'e66118604b7b3827': "A",
+        'e66118604b1c7722': "B"
+    }
+)
 
-ALL_DEVICE = [TARDIS_DEVICE, PASSPHRASE_DISPLAY_DEVICE]
+ALL_DEVICE_TYPES = [TARDIS_DEVICE, PASSPHRASE_DISPLAY_DEVICE]
 
-device_type = next(x for x in ALL_DEVICE if x.name.casefold() == args.device_type.casefold())
-
-print(f'device_type: {device_type.name}')
+# device_type = next(x for x in ALL_DEVICE_TYPES if x.name.casefold() == args.device_type.casefold())
+#
+# print(f'device_type: {device_type.name}')
 
 
 def send_timecube(con):
@@ -73,10 +88,9 @@ def send_timecube(con):
     timeCube = ",".join(
         [str(x) for x in [t.year, t.month, t.day, t.hour, t.minute, t.second, t.weekday(), millisToWaitForDeadline]])
     syncMSG = 'T' + timeCube + '_'
-    console.write(bytes(syncMSG, "ascii"))
+    con.write(bytes(syncMSG, "ascii"))
 
     timeAfterSending = datetime.now(timezone.utc)
-    print("Raspberry Pi Pico found at " + str(picoSerialPort))
     print(f'Original time was\t{str(originalTime)}')
     print(f'Time after sending\t{str(timeAfterSending)}')
     print(f'Deadline will be\t{str(t)}')
@@ -89,38 +103,53 @@ def send_timecube(con):
     print(f'Time is now {datetime.now(timezone.utc)}')
 
 
-picoPorts = list(list_ports.grep(device_type.port))
-if not picoPorts:
-    print(f"No {device_type.name} found")
-else:
-    print(f"Found {device_type.name} device:")
-    for port_info in picoPorts:
-        print(f'* {port_info}')
+def handle_line(line: str, read_time: datetime, device_type: DeviceType):
+    prefix = "clock_report:"
+    suffix = "Z"
+    starts_with_prefix = line.startswith(prefix)
+    ends_with_suffix = line.endswith(suffix)
+    if starts_with_prefix and ends_with_suffix:
+        name, timestamp = line.removeprefix(prefix).removesuffix(suffix).split("=")
+        dt = datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
+        diff = (dt - read_time).total_seconds()
+        clock_diff = f'{"-" if diff < 0 else "+"}{abs(diff):.3f}s {"✅" if abs(diff) < 0.5 else "❌"}'
+        print(f"{read_time.time().isoformat(timespec='milliseconds')} : {device_type.name} : {name} @ {clock_diff}")
+    else:
+        # print(textwrap.indent(line, '> '))
+        pass
 
-    picoSerialPort = picoPorts[0].device
 
-    with serial.Serial(picoSerialPort) as console:
-
+async def monitor_device(dt: DeviceType, port_info: ListPortInfo):
+    with serial.Serial(port_info.device) as console:
         send_timecube(console)
         while True:
             # if randrange(800) == 0:
             #     send_timecube(console)
 
-            now = datetime.now(timezone.utc)
+            read_time = datetime.now(timezone.utc)
             num_bytes = console.inWaiting()
             if num_bytes > 0:
                 input_data: str = console.read(num_bytes).decode("utf-8")
                 for line in input_data.splitlines():
-                    prefix = "clock_report:"
-                    suffix = "Z"
-                    starts_with_prefix = line.startswith(prefix)
-                    ends_with_suffix = line.endswith(suffix)
-                    if starts_with_prefix and ends_with_suffix:
-                        name, timestamp = line.removeprefix(prefix).removesuffix(suffix).split("=")
-                        dt = datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
-                        diff = (dt - now).total_seconds()
-                        clock_diff = f'{"-" if diff < 0 else "+"}{abs(diff):.3f}s {"✅" if abs(diff) < 0.5 else "❌"}'
-                        print(f"{now.time().isoformat(timespec='milliseconds')} : {name} @ {clock_diff}")
-                    else:
-                      print(textwrap.indent(line, '> '))
-            time.sleep(0.01)
+                    handle_line(line, read_time, dt)
+            await asyncio.sleep(0.001 / 2)
+
+
+def find_devices() -> list[(DeviceType, ListPortInfo)]:
+    return [(dt, port_info) for port_info in list_ports.comports() for dt in ALL_DEVICE_TYPES if port_info.serial_number in dt.known_usb_device_serial_numbers]
+
+async def main():
+    print('Hello ...')
+    await asyncio.sleep(0.1)
+    print('... World!')
+
+    for dt, port_info in find_devices():
+        print(f'dt name={dt.name}')
+        print(f'* {port_info} - {dt.known_usb_device_serial_numbers[port_info.serial_number]}')
+        asyncio.create_task(monitor_device(dt, port_info))
+
+    while True:
+        await asyncio.sleep(10)
+
+
+asyncio.run(main())
