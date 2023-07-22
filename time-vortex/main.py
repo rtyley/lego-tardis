@@ -15,6 +15,7 @@ import asyncio
 import serial
 from serial.tools import list_ports
 from serial.tools.list_ports_common import ListPortInfo
+from itertools import groupby
 
 parser = argparse.ArgumentParser(
     description='Communicate through the vortex'
@@ -51,6 +52,13 @@ class DeviceType:
         self.known_usb_device_serial_numbers = known_usb_device_serial_numbers
 
 
+class DeviceConnection:
+    def __init__(self, device_type: DeviceType, port_info: ListPortInfo):
+        self.device_type = device_type
+        self.port_info = port_info
+        self.name = f'{device_type.name} {device_type.known_usb_device_serial_numbers[port_info.serial_number]}'
+
+
 # VID:PID for different devices:
 # RPi Pico                  : 2E8A:0005
 # Pimoroni Pico LiPo (16MB) : 2E8A:1003
@@ -72,6 +80,7 @@ PASSPHRASE_DISPLAY_DEVICE = DeviceType(
 )
 
 ALL_DEVICE_TYPES = [TARDIS_DEVICE, PASSPHRASE_DISPLAY_DEVICE]
+
 
 # device_type = next(x for x in ALL_DEVICE_TYPES if x.name.casefold() == args.device_type.casefold())
 #
@@ -103,7 +112,7 @@ def send_timecube(con):
     print(f'Time is now {datetime.now(timezone.utc)}')
 
 
-def handle_line(line: str, read_time: datetime, device_type: DeviceType):
+def handle_line(line: str, read_time: datetime, device_connection: DeviceConnection):
     prefix = "clock_report:"
     suffix = "Z"
     starts_with_prefix = line.startswith(prefix)
@@ -113,14 +122,14 @@ def handle_line(line: str, read_time: datetime, device_type: DeviceType):
         dt = datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
         diff = (dt - read_time).total_seconds()
         clock_diff = f'{"-" if diff < 0 else "+"}{abs(diff):.3f}s {"✅" if abs(diff) < 0.5 else "❌"}'
-        print(f"{read_time.time().isoformat(timespec='milliseconds')} : {device_type.name} : {name} @ {clock_diff}")
+        print(f"{read_time.time().isoformat(timespec='milliseconds')} : {device_connection.name} : {name} @ {clock_diff}")
     else:
         # print(textwrap.indent(line, '> '))
         pass
 
 
-async def monitor_device(dt: DeviceType, port_info: ListPortInfo):
-    with serial.Serial(port_info.device) as console:
+async def monitor_device(device_connection: DeviceConnection):
+    with serial.Serial(device_connection.port_info.device) as console:
         send_timecube(console)
         while True:
             # if randrange(800) == 0:
@@ -131,22 +140,28 @@ async def monitor_device(dt: DeviceType, port_info: ListPortInfo):
             if num_bytes > 0:
                 input_data: str = console.read(num_bytes).decode("utf-8")
                 for line in input_data.splitlines():
-                    handle_line(line, read_time, dt)
+                    handle_line(line, read_time, device_connection)
             await asyncio.sleep(0.001 / 2)
 
 
-def find_devices() -> list[(DeviceType, ListPortInfo)]:
-    return [(dt, port_info) for port_info in list_ports.comports() for dt in ALL_DEVICE_TYPES if port_info.serial_number in dt.known_usb_device_serial_numbers]
+def find_devices() -> list[DeviceConnection]:
+    return [DeviceConnection(dt, port_info) for port_info in list_ports.comports() for dt in ALL_DEVICE_TYPES if
+            port_info.serial_number in dt.known_usb_device_serial_numbers]
+
 
 async def main():
     print('Hello ...')
     await asyncio.sleep(0.1)
     print('... World!')
 
-    for dt, port_info in find_devices():
-        print(f'dt name={dt.name}')
-        print(f'* {port_info} - {dt.known_usb_device_serial_numbers[port_info.serial_number]}')
-        asyncio.create_task(monitor_device(dt, port_info))
+    all_devices = find_devices()
+    for dt, device_conns_for_dt in groupby(all_devices, lambda dc: dc.device_type):
+        print(dt.name)
+        for device_conn in device_conns_for_dt:
+            print(f'* {device_conn.port_info} - {device_conn.name}')
+
+    for device_conn in all_devices:
+        asyncio.create_task(monitor_device(device_conn))
 
     while True:
         await asyncio.sleep(10)
