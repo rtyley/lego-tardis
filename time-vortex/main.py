@@ -11,6 +11,7 @@ from datetime import timedelta
 from random import randrange
 from time import gmtime
 import asyncio
+from prettytable import PrettyTable
 
 import serial
 from serial.tools import list_ports
@@ -57,6 +58,11 @@ class DeviceConnection:
         self.device_type = device_type
         self.port_info = port_info
         self.name = f'{device_type.name} {device_type.known_usb_device_serial_numbers[port_info.serial_number]}'
+        self.latest_diff: dict[str, float] = {}
+
+    def latest_diff_summary(self) -> str:
+        return ", ".join([f'{name} @ {time_diff(diff)}' for name, diff in sorted(self.latest_diff.items())])
+
 
 
 # VID:PID for different devices:
@@ -112,6 +118,9 @@ def send_timecube(con):
     print(f'Time is now {datetime.now(timezone.utc)}')
 
 
+def time_diff(diff: float):
+    return f'{"-" if diff < 0 else "+"}{abs(diff):.3f}s {"✅" if abs(diff) < 0.5 else "❌"}'
+
 def handle_line(line: str, read_time: datetime, device_connection: DeviceConnection):
     prefix = "clock_report:"
     suffix = "Z"
@@ -121,8 +130,8 @@ def handle_line(line: str, read_time: datetime, device_connection: DeviceConnect
         name, timestamp = line.removeprefix(prefix).removesuffix(suffix).split("=")
         dt = datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
         diff = (dt - read_time).total_seconds()
-        clock_diff = f'{"-" if diff < 0 else "+"}{abs(diff):.3f}s {"✅" if abs(diff) < 0.5 else "❌"}'
-        print(f"{read_time.time().isoformat(timespec='milliseconds')} : {device_connection.name} : {name} @ {clock_diff}")
+        device_connection.latest_diff[name] = diff
+        # print(f"{read_time.time().isoformat(timespec='milliseconds')} : {device_connection.name} : {name} @ {time_diff(diff)}")
     else:
         # print(textwrap.indent(line, '> '))
         pass
@@ -164,6 +173,14 @@ async def main():
         asyncio.create_task(monitor_device(device_conn))
 
     while True:
+        all_clock_names = sorted(list(set().union(*[device_conn.latest_diff.keys() for device_conn in all_devices])))
+        x = PrettyTable()
+        x.field_names = ["Device"] + all_clock_names
+        x.add_rows([[dc.name] + [time_diff(dc.latest_diff[n]) if n in dc.latest_diff else "" for n in all_clock_names] for dc in all_devices])
+        print(x)
+
+        # for device_conn in all_devices:
+        #     print(f'{device_conn.name}\t: {device_conn.latest_diff_summary()}')
         await asyncio.sleep(10)
 
 
