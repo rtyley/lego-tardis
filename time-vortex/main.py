@@ -12,17 +12,19 @@ from random import randrange
 from time import gmtime
 import asyncio
 from prettytable import PrettyTable
+import json
 
 import serial
 from serial.tools import list_ports
 from serial.tools.list_ports_common import ListPortInfo
 from itertools import groupby
+from fnv import fnv_1a
 
 parser = argparse.ArgumentParser(
     description='Communicate through the vortex'
 )
 parser.add_argument('--device-type',
-                    required=True,
+                    required=False,
                     help='TARDIS or DISPLAY')
 
 args = parser.parse_args()
@@ -94,28 +96,17 @@ ALL_DEVICE_TYPES = [TARDIS_DEVICE, PASSPHRASE_DISPLAY_DEVICE]
 
 
 def send_timecube(con):
-    global originalTime, t, millisToWaitForDeadline, timeCube
     originalTime = datetime.now(timezone.utc)
-    t = originalTime.replace(microsecond=0) + timedelta(seconds=1)
+    t = originalTime.replace(microsecond=0) + timedelta(seconds=2)
     millisToWaitForDeadline = int((t - originalTime) / timedelta(milliseconds=1))
-    # year, month, day, hour, minute, second, wday
-    print("gmtime=" + str(gmtime()))
-    timeCube = ",".join(
-        [str(x) for x in [t.year, t.month, t.day, t.hour, t.minute, t.second, t.weekday(), millisToWaitForDeadline]])
-    syncMSG = 'T' + timeCube + '_'
-    con.write(bytes(syncMSG, "ascii"))
+
+    payload = json.dumps({'ts': f'{t.isoformat().replace("+00:00", "Z")}', 'w': t.weekday(), 'dl': millisToWaitForDeadline})
+    timeCube = f'⏳{payload}⏱️{fnv_1a(payload.encode("ascii"))}⌛'
+    con.write(timeCube.encode("utf-8"))
 
     timeAfterSending = datetime.now(timezone.utc)
-    print(f'Original time was\t{str(originalTime)}')
-    print(f'Time after sending\t{str(timeAfterSending)}')
-    print(f'Deadline will be\t{str(t)}')
-    print(f'millisToWaitForDeadline were {millisToWaitForDeadline}')
     print(f'transmit cycle took {timeAfterSending - originalTime}')
-
-    print("Time sync epoch USB MSG: " + syncMSG)
-    print("t: " + str(t))
-    time.sleep((t - datetime.now(timezone.utc)).total_seconds())
-    print(f'Time is now {datetime.now(timezone.utc)}')
+    print("Time sync epoch USB MSG: " + timeCube)
 
 
 def time_diff(diff: float):
