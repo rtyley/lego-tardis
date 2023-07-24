@@ -1,15 +1,21 @@
-import functools
 import json
-
 
 FNV_32_PRIME: int = 0x01000193
 FNV1_32_INIT: int = 0x811c9dc5
 FNV_32_SIZE: int = 2 ** 32
 
 
+def fold_left(sequence, initial, function):
+    it = iter(sequence)
+    value = initial
+    for element in it:
+        value = function(value, element)
+    return value
+
+
 def fnv_1a(data: bytes) -> int:
     assert isinstance(data, bytes)
-    return functools.reduce(lambda fh, byte: ((fh ^ byte) * FNV_32_PRIME) % FNV_32_SIZE, data, FNV1_32_INIT)
+    return fold_left(data, FNV1_32_INIT, lambda fh, byte: ((fh ^ byte) * FNV_32_PRIME) % FNV_32_SIZE)
 
 
 def fnv_1a_on_str(payload) -> int:

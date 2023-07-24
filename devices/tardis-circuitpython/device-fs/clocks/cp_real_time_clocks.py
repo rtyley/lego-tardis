@@ -14,7 +14,7 @@ class CircuitPythonClock(RealTimeClock):
         return t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec
 
 
-external_clock = CircuitPythonClock("ds3231", lambda: batteryRTC.datetime)
-internal_clock = CircuitPythonClock("rp2040", lambda: rp2040_rtc.datetime)
+external_clock = CircuitPythonClock("ds3231", lambda: batteryRTC.datetime, lambda scum: (batteryRTC.datetime(scum)))
+internal_clock = CircuitPythonClock("rp2040", lambda: rp2040_rtc.datetime, lambda scum: (rp2040_rtc.datetime(scum)))
 
 all_clocks = [internal_clock, external_clock]

@@ -122,15 +122,15 @@ def handle_line(line: str, read_time: datetime, device_connection: DeviceConnect
             dt = datetime.fromisoformat(ts.rstrip("Z")).replace(tzinfo=timezone.utc)
             diff = (dt - read_time).total_seconds()
             device_connection.latest_diff[name] = diff
-            # print(f"{read_time.time().isoformat(timespec='milliseconds')} : {device_connection.name} : {name} @ {time_diff(diff)}")
+            print(f"{device_connection.name} : {name} @ {time_diff(diff)}")
         if typ == 'clock_set':  # Device has set its clock, we can now see what offset ClockReporter reports to gauge required compensation
     #         we will have set time with some kind of offset. We want to see what the resulting offset is.
     #         Ideally, perhaps, the device would record and report, with each clock report, what offset it was being
     #         advised to take, so we could easily calculate a corrected offset. The device could even be ignorant of
     #         the offset used, if it was encrypted!
+            pass
     else:
-        # print(textwrap.indent(line, '> '))
-        pass
+        pass # print(textwrap.indent(line, '> '))
 
 
 async def monitor_device(device_connection: DeviceConnection):
