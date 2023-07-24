@@ -18,7 +18,7 @@ import serial
 from serial.tools import list_ports
 from serial.tools.list_ports_common import ListPortInfo
 from itertools import groupby
-from fnv import fnv_1a
+import synchro_protocol
 
 parser = argparse.ArgumentParser(
     description='Communicate through the vortex'
@@ -100,8 +100,7 @@ def send_timecube(con):
     t = originalTime.replace(microsecond=0) + timedelta(seconds=2)
     millisToWaitForDeadline = int((t - originalTime) / timedelta(milliseconds=1))
 
-    payload = json.dumps({'ts': f'{t.isoformat().replace("+00:00", "Z")}', 'w': t.weekday(), 'dl': millisToWaitForDeadline})
-    timeCube = f'⏳{payload}⏱️{fnv_1a(payload.encode("ascii"))}⌛'
+    timeCube = synchro_protocol.encode({'ts': f'{t.isoformat().replace("+00:00", "Z")}', 'w': t.weekday(), 'dl': millisToWaitForDeadline})
     con.write(timeCube.encode("utf-8"))
 
     timeAfterSending = datetime.now(timezone.utc)

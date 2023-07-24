@@ -1,6 +1,7 @@
 from math import ceil
 from clocks.python_variant_shims import ticks_ms, ticks_add, ticks_diff, sleep
 
+
 class RealTimeClock(object):
     timestamp_format = "%04d-%02d-%02dT%02d:%02d:%02dZ"
 
