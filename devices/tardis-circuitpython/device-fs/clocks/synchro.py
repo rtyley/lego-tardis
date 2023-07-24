@@ -1,13 +1,16 @@
 from math import ceil
+
+from clocks import synchro_protocol
 from clocks.python_variant_shims import ticks_ms, ticks_add, ticks_diff, sleep
 
 
 class RealTimeClock(object):
     timestamp_format = "%04d-%02d-%02dT%02d:%02d:%02dZ"
 
-    def __init__(self, name: str, get_time_repr):
+    def __init__(self, name: str, get_time_repr, set_time_repr):
         self.name = name
         self.get_time_repr = get_time_repr
+        self.set_time_repr = set_time_repr
 
     def ymd_hms_tuple_for_repr(self, t):
         raise NotImplementedError("Please Implement this method")
@@ -109,7 +112,7 @@ class ClockReporter:
                     if observed_range_size <= desired_range_size_ticks_ms:  # we're accurate!
                         if old_confirmed_range_was_broad or \
                                 ticks_diff(leg_ticks, last_clock_report_ticks_ms) > desired_report_period_ticks_ms:
-                            print(f'clock_report:{self.clock.name}={self.clock.timestamp_for_repr(leg_time)}')
+                            print(synchro_protocol.encode({'type': "clock_report", 'cn': self.clock.name, 'ts': self.clock.timestamp_for_repr(leg_time)}))
                             if old_confirmed_range_was_broad:
                                 print(f'{self.clock.name} converged on new range: {confirmed_range.summary()}')
                             last_clock_report_ticks_ms = leg_ticks

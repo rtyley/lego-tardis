@@ -112,16 +112,22 @@ def time_diff(diff: float):
     return f'{"-" if diff < 0 else "+"}{abs(diff):.3f}s {"✅" if abs(diff) < 0.5 else "❌"}'
 
 def handle_line(line: str, read_time: datetime, device_connection: DeviceConnection):
-    prefix = "clock_report:"
-    suffix = "Z"
-    starts_with_prefix = line.startswith(prefix)
-    ends_with_suffix = line.endswith(suffix)
-    if starts_with_prefix and ends_with_suffix:
-        name, timestamp = line.removeprefix(prefix).removesuffix(suffix).split("=")
-        dt = datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc)
-        diff = (dt - read_time).total_seconds()
-        device_connection.latest_diff[name] = diff
-        # print(f"{read_time.time().isoformat(timespec='milliseconds')} : {device_connection.name} : {name} @ {time_diff(diff)}")
+    sync_data = synchro_protocol.decode_and_verify(line)
+    if sync_data is not None:
+        # {'type': "clock_report", 'cn': self.clock.name, 'ts': self.clock.timestamp_for_repr(leg_time)}))
+        typ: str = sync_data['type']
+        if typ == 'clock_report':
+            name: str = sync_data['cn']
+            ts: str = sync_data['ts']
+            dt = datetime.fromisoformat(ts.rstrip("Z")).replace(tzinfo=timezone.utc)
+            diff = (dt - read_time).total_seconds()
+            device_connection.latest_diff[name] = diff
+            # print(f"{read_time.time().isoformat(timespec='milliseconds')} : {device_connection.name} : {name} @ {time_diff(diff)}")
+        if typ == 'clock_set':  # Device has set its clock, we can now see what offset ClockReporter reports to gauge required compensation
+    #         we will have set time with some kind of offset. We want to see what the resulting offset is.
+    #         Ideally, perhaps, the device would record and report, with each clock report, what offset it was being
+    #         advised to take, so we could easily calculate a corrected offset. The device could even be ignorant of
+    #         the offset used, if it was encrypted!
     else:
         # print(textwrap.indent(line, '> '))
         pass
