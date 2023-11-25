@@ -7,6 +7,9 @@ import supervisor
 import time
 from sys import stdin
 from select import select
+
+from clocks import synchro_protocol
+from clocks.synchro_protocol import MESSAGE_START, MESSAGE_END
 from tardis.windows import set_all_windows
 from adafruit_ticks import *
 import rtc
@@ -47,7 +50,7 @@ async def watch_clock():
             print(f'batteryRTC.datetime: {batteryRTC.datetime}')
             set_rp2040_rtc_from_battery_rtc()
 
-        await asyncio.sleep(0.001 / 2)
+        await asyncio.sleep(0.01)  # 0.001 seems to result in clicks while playing music
 
 
 def readDeadlineAndTimeToDeadlineFromUSB():
@@ -59,16 +62,13 @@ def readDeadlineAndTimeToDeadlineFromUSB():
     if buffer:
         print("Received USB data!")
         for i in range(len(buffer)):
-            if buffer[i] == 'T':
+            if buffer[i] == MESSAGE_START:
                 break
         buffer = buffer[i:]
-        if buffer[:1] == 'T' and buffer[-1] == '_':
-            buffData = buffer[1:-1]
-            print(f'buffData: {buffData}')
-            buffFields = [int(x) for x in buffData.split(',')]
-            deadLineFields = buffFields[:-1]
-            deadLineFields.append(0)
-            timeToDeadLine = buffFields[-1]
-            print("timeToDeadLine:", end='');
-            print(timeToDeadLine)
-            return deadLineFields, adafruit_ticks.ticks_add(ticks_ms_for_read_instant, timeToDeadLine)
+        if buffer[:1] == MESSAGE_START and buffer[-1] == MESSAGE_END:
+            sync_data = synchro_protocol.decode_and_verify(buffer)
+            if sync_data is not None:
+                weekday: str = sync_data['w']
+                ts: str = sync_data['ts']
+                # print(f'ts is like ${ts}')
+                return None # deadLineFields, adafruit_ticks.ticks_add(ticks_ms_for_read_instant, timeToDeadLine)

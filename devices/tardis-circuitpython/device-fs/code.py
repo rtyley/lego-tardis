@@ -12,7 +12,7 @@ from clocks.synchro import ClockReporter
 
 async def main():
     clock.set_rp2040_rtc_from_battery_rtc()
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.2)
     ghetto_blaster_controls = ghetto_blaster.Controls()
     key_history = tardis_keypad.KeyHistory()
     dev_mode = DeviceMode()
@@ -20,17 +20,16 @@ async def main():
     # dev_mode.set_activity(WindowFlip(ghetto_blaster_controls))
     dev_mode.set_activity(HomeMenu(ghetto_blaster_controls))
 
-    for c in all_clocks:
-        asyncio.create_task(ClockReporter(c).start())
+    # for c in all_clocks:
+    #     asyncio.create_task(ClockReporter(c).start())
 
     # rp2040_rtc_reporter.start()
+    tardis_keypad.set_control_light(255)
     await asyncio.gather(
         asyncio.create_task(windows.whoosh()),
         # asyncio.create_task(clock.watch_clock()),
 
         asyncio.create_task(tardis_keypad.catch_pin_transitions(key_history, dev_mode)),
-
-        # asyncio.create_task(tardis_keypad.throb_control_light()),
 
         asyncio.create_task(ghetto_blaster.poll_for_music_requests(ghetto_blaster_controls))
     )

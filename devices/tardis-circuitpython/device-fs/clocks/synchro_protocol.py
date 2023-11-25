@@ -59,5 +59,5 @@ test_vectors: dict[str, int] = {
 
 for text, h in test_vectors.items():
     actual = fnv_1a(text.encode("ascii"))
-    print(actual, h)
+    # print(actual, h)
     assert actual == h
