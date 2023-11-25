@@ -31,7 +31,7 @@ class HomeMenu(Activity):
             if last_2_keys == [1, 0]:
                 self.ghetto_blaster_controls.make_request_for(ghetto_blaster.PlayTardisLanding)
             if last_2_keys == [14, 15]:
-                asyncio.create_task(windows.whooshy_cycle())
+                asyncio.create_task(windows.whoosh())
             if last_2_keys == [2, 3]:
                 self.ghetto_blaster_controls.make_request_for(ghetto_blaster.PauseOrResume())
 

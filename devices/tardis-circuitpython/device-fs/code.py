@@ -24,9 +24,8 @@ async def main():
     #     asyncio.create_task(ClockReporter(c).start())
 
     # rp2040_rtc_reporter.start()
-    tardis_keypad.set_control_light(255)
     await asyncio.gather(
-        asyncio.create_task(windows.whoosh()),
+        # asyncio.create_task(windows.whoosh()),
         # asyncio.create_task(clock.watch_clock()),
 
         asyncio.create_task(tardis_keypad.catch_pin_transitions(key_history, dev_mode)),
