@@ -2,6 +2,8 @@
 
 _A LEGO MOC (My Own Creation) of The Doctor's [TARDIS](https://en.wikipedia.org/wiki/TARDIS)_
 
+Building Instructions: [PDF](https://drive.google.com/file/d/1FCd8LHcxNqB_J7Pwswon29Ox_vP181gb/view?usp=sharing)
+
 ![LEGO TARDIS floating in space](assets/LegoTardisInSpace.png)
 
 The code in this GitHub repo is mostly for the Raspberry Pi computer that controls the Tardis, but you might be more interested in:
